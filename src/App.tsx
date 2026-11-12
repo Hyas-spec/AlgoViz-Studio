@@ -115,6 +115,17 @@ export default function App() {
             随机数据下平均性能最好；但面对有序数组会退化成 O(n²)，所以工程里常用随机基准或三数取中。
           </div>
 
+          <div className="step-index">
+            <div className="si-title">
+              <span>本节步骤</span>
+              <span>{String(steps.length).padStart(2, '0')} STEPS</span>
+            </div>
+            <div className="si-row"><b>01</b><span>选基准</span><i /><em>末元素</em></div>
+            <div className="si-row"><b>02</b><span>扫描</span><i /><em>≤ pivot</em></div>
+            <div className="si-row"><b>03</b><span>交换</span><i /><em>i / j</em></div>
+            <div className="si-row"><b>04</b><span>递归</span><i /><em>左右两区</em></div>
+          </div>
+
           <form
             className="ask"
             onSubmit={(e) => {

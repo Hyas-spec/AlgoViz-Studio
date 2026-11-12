@@ -190,6 +190,33 @@ h1 {
 }
 .margin-note b { color: var(--ink); font-weight: 600; }
 
+.step-index {
+  margin-top: 22px;
+  max-width: 430px;
+  border-top: 1px solid var(--rule);
+  padding-top: 10px;
+}
+.si-title {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: var(--faint);
+  margin-bottom: 4px;
+}
+.si-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.si-row b { font-family: var(--mono); font-weight: 400; font-size: 8.5px; color: var(--blue); }
+.si-row i { flex: 1; border-bottom: 1px dotted #c9bda7; transform: translateY(-2px); }
+.si-row em { font-style: normal; font-family: var(--mono); font-size: 8.5px; color: var(--faint); }
+
 .ask {
   margin-top: auto;
   padding-top: 10px;
