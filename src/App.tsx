@@ -1,26 +1,37 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Figure } from './components/Figure';
-import { buildSteps, DEFAULT_ARRAY } from './lib/engine';
-
-const CODE_LINES = [
-  'function quickSort(a, l, r):',
-  '  if l >= r return',
-  '  p = partition(a, l, r)',
-  '  swap(a[p], a[r])   // 基准归位',
-  '  quickSort(a, l, p - 1)',
-  '  quickSort(a, p + 1, r)',
-];
+import { SCENES, SCENE_LABEL, SCENE_ORDER, routeScene, type SceneId } from './lib/engines';
 
 export default function App() {
-  const steps = useMemo(() => buildSteps(DEFAULT_ARRAY), []);
+  const [sceneId, setSceneId] = useState<SceneId>(() => {
+    const q = new URLSearchParams(window.location.search).get('scene');
+    return q && q in SCENES ? (q as SceneId) : 'quick';
+  });
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [question, setQuestion] = useState('');
 
-  const step = steps[index];
+  const scene = SCENES[sceneId];
+  const steps = scene.steps;
   const last = steps.length - 1;
-  const progress = last > 0 ? index / last : 0;
+  const safeIndex = Math.min(index, last);
+  const step = steps[safeIndex];
+  const progress = last > 0 ? safeIndex / last : 0;
+
+  const noteTitle = useMemo(() => {
+    const i = scene.note.indexOf('？');
+    return i >= 0 ? scene.note.slice(0, i + 1) : scene.note;
+  }, [scene.note]);
+  const noteBody = useMemo(() => {
+    const i = scene.note.indexOf('？');
+    return i >= 0 ? scene.note.slice(i + 1) : '';
+  }, [scene.note]);
+
+  useEffect(() => {
+    setIndex(0);
+    setPlaying(false);
+  }, [sceneId]);
 
   useEffect(() => {
     if (!playing) return;
@@ -70,33 +81,41 @@ export default function App() {
 
       <main className="spread">
         <section className="page left">
-          <div className="chapter">CH.03 / SORTING — QUICKSORT</div>
-          <h1>分区</h1>
-          <p className="dek">
-            把小于基准的放左边，大于的放右边，再对两侧递归。
-            <b>整个快速排序，本质上就是这一件事。</b>
-          </p>
+          <div className="chapter">{scene.chapter}</div>
+          <div className="scene-switch" role="tablist" aria-label="选择排序算法">
+            {SCENE_ORDER.map((id) => (
+              <button
+                key={id}
+                role="tab"
+                aria-selected={id === sceneId}
+                className={id === sceneId ? 'on' : ''}
+                onClick={() => {
+                  setSceneId(id);
+                  setIndex(0);
+                }}
+              >
+                {SCENE_LABEL[id]}
+              </button>
+            ))}
+          </div>
+          <h1>{scene.title}</h1>
+          <p className="dek">{scene.summary}</p>
 
           <div className="body">
-            <div className="bcol">
-              <p>
-                分区结束后，基准落在它的最终位置：左区每个元素都不大于它，右区每个元素都大于它。接下来对两侧递归；区间缩到 1 或 0 时自然结束。
-              </p>
-            </div>
-            <div className="bcol">
-              <p>
-                这就是分治：一次划分把问题切成两个更小的同类问题，而基准本身再也不需要移动。
-              </p>
-            </div>
+            {scene.body.map((paragraph, i) => (
+              <div className="bcol" key={i}>
+                <p>{paragraph}</p>
+              </div>
+            ))}
           </div>
 
           <div className="formula">
-            T(n) = 2T(n/2) + O(n)
-            <span>平均 O(n log n) · 最坏 O(n²) · 空间 O(log n)</span>
+            {scene.formula}
+            <span>平均 {scene.complexity.time} · 空间 {scene.complexity.space}</span>
           </div>
 
           <div className="code">
-            {CODE_LINES.map((line, i) => (
+            {scene.code.map((line, i) => (
               <div key={line} className={step.codeLine === i + 1 ? 'line active' : 'line'}>
                 <span className="ln">{i + 1}</span>
                 {line}
@@ -105,14 +124,17 @@ export default function App() {
           </div>
 
           <div className="facts">
-            <div>稳定性<b>否</b></div>
-            <div>原地排序<b>是</b></div>
-            <div>最坏情况<b>O(n²)</b></div>
+            {scene.facts.map((fact) => (
+              <div key={fact.label}>
+                {fact.label}
+                <b>{fact.value}</b>
+              </div>
+            ))}
           </div>
 
           <div className="margin-note">
-            <b>为什么取末元素？</b>
-            随机数据下平均性能最好；但面对有序数组会退化成 O(n²)，所以工程里常用随机基准或三数取中。
+            <b>{noteTitle}</b>
+            {noteBody}
           </div>
 
           <div className="step-index">
@@ -120,28 +142,38 @@ export default function App() {
               <span>本节步骤</span>
               <span>{String(steps.length).padStart(2, '0')} STEPS</span>
             </div>
-            <div className="si-row"><b>01</b><span>选基准</span><i /><em>末元素</em></div>
-            <div className="si-row"><b>02</b><span>扫描</span><i /><em>≤ pivot</em></div>
-            <div className="si-row"><b>03</b><span>交换</span><i /><em>i / j</em></div>
-            <div className="si-row"><b>04</b><span>递归</span><i /><em>左右两区</em></div>
+            {scene.outline.map((item, i) => (
+              <div className="si-row" key={item.label}>
+                <b>{String(i + 1).padStart(2, '0')}</b>
+                <span>{item.label}</span>
+                <i />
+                <em>{item.value}</em>
+              </div>
+            ))}
           </div>
 
           <form
             className="ask"
             onSubmit={(e) => {
               e.preventDefault();
-              setPlaying(false);
-              setIndex(0);
-              setPlaying(true);
+              const next = routeScene(question);
+              if (next) {
+                setSceneId(next);
+                setQuestion('');
+              } else {
+                setIndex(0);
+                setPlaying(false);
+                setPlaying(true);
+              }
             }}
           >
             <input
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="追问一句：为什么不选第一个元素当基准？"
+              placeholder={scene.question}
               aria-label="追问"
             />
-            <button type="submit" aria-label="重新播放">→</button>
+            <button type="submit" aria-label="提交追问">→</button>
           </form>
 
           <div className="pgl">12</div>
@@ -149,8 +181,8 @@ export default function App() {
 
         <section className="page right">
           <div className="fig-head">
-            <span><b>FIG. 3.2</b> — PARTITION</span>
-            <span className="orange">第 {index + 1} 帧 / {steps.length}</span>
+            <span><b>FIG. 3.2</b> — {scene.figure}</span>
+            <span className="orange">第 {safeIndex + 1} 帧 / {steps.length}</span>
           </div>
 
           <div className="figure">
@@ -167,7 +199,7 @@ export default function App() {
             aria-label="时间轴"
             aria-valuemin={1}
             aria-valuemax={steps.length}
-            aria-valuenow={index + 1}
+            aria-valuenow={safeIndex + 1}
             tabIndex={0}
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
@@ -208,7 +240,7 @@ export default function App() {
               ▷
             </button>
             <span>
-              <b>{String(index + 1).padStart(3, '0')}</b> / {String(steps.length).padStart(3, '0')}
+              <b>{String(safeIndex + 1).padStart(3, '0')}</b> / {String(steps.length).padStart(3, '0')}
             </span>
             <button
               className="speed"

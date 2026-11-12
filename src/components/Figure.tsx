@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { Step } from '../lib/engine';
+import type { Step } from '../lib/dsl';
 
 const PAPER = '#FBF8F1';
 const INK = '#151515';
