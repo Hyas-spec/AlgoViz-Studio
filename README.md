@@ -9,28 +9,59 @@
 ## 状态
 
 - ✅ 视觉定稿：讲义双页（The Spread）
-- 🚧 开发中：双页版式 + 数组图版 + 快速排序引擎
-- ⬜ 待接入：LLM 生成、四类图版、导出
+- ✅ 双页版式 + 数组图版 + 快速排序引擎（46 步）
+- 🚧 进行中：冒泡/归并、树/图/时序图版
+- ⬜ 待接入：LLM 生成、导出、Monaco/KaTeX
 
-## 开发
+## 10 分钟复现
+
+环境：Node 20.19+（本机 26.13）、npm 11+。
 
 ```bash
+# 1. 安装依赖（国内网络可加 --registry=https://registry.npmmirror.com）
 npm install
-npm run dev      # http://localhost:5173
-npm run build
+
+# 2. 环境变量（可选；当前只跑内置引擎，不需要 Key）
+#    Windows: copy .env.local.example .env.local
+cp .env.local.example .env.local
+
+# 3. 启动
+npm run dev
+
+# 4. 打开
+#    http://127.0.0.1:5173
+```
+
+验收：双页可见；播放/单步/标尺可用；`<780px` 自动单列且图版在前。
+
+常见问题：
+
+- 端口占用：改 `vite.config.ts` 的 `server.port`。
+- 字体缺失：Noto Serif SC 缺失时回退宋体，不影响布局。
+- 高缩放：Edge 200% 下为 954×440 的紧凑双页，左页可独立滚动。
+- npm 源慢：加 `--registry=https://registry.npmmirror.com`。
+
+## 命令
+
+```bash
+npm run dev        # http://127.0.0.1:5173
+npm run build      # tsc --noEmit && vite build
 npm run typecheck
 ```
 
 ## 目录
 
 ```
-docs/       设计书、操作流程、Prompt 记录
-mockups/    视觉基线（concept-spread.png）
-src/        应用源码
+docs/             设计书、操作流程、Prompt 记录
+  prompts/        文字版 Prompt 链（00 界面选型、01 脚手架与双页）
+mockups/          视觉基线与兼容性截图
+src/              应用源码
 ```
 
 ## 设计文档
 
 - [项目设计书](docs/01-项目设计书.md)（v0.2，视觉定稿）
 - [操作流程](docs/00-操作流程.md)
+- [Prompt 00 · 界面选型](docs/prompts/00-界面选型.md)
+- [Prompt 01 · 脚手架与双页](docs/prompts/01-脚手架与双页.md)
 - 视觉基线：[concept-spread.png](mockups/concept-spread.png)
