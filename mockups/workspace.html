@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>AlgoViz · 界面预览</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #090C12;
+    --panel: #0E121B;
+    --panel-2: #111725;
+    --line: #1D2534;
+    --line-soft: #171E2B;
+    --text: #E9EDF6;
+    --muted: #8B94A9;
+    --dim: #5A6377;
+    --cyan: #22D3EE;
+    --violet: #A78BFA;
+    --amber: #F5B84D;
+    --red: #F87171;
+    --green: #34D399;
+    --mono: "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+  }
+  html, body { width: 1600px; height: 1000px; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app { display: flex; flex-direction: column; height: 1000px; position: relative; }
+  .app::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; z-index: 5;
+    background: linear-gradient(90deg, transparent, var(--cyan), var(--violet), transparent);
+    opacity: .85;
+  }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    height: 64px; flex: 0 0 64px; display: flex; align-items: center;
+    padding: 0 20px; gap: 22px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #0C1018, #0A0E15);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .logo {
+    width: 32px; height: 32px; border-radius: 9px;
+    background: linear-gradient(145deg, rgba(34,211,238,.18), rgba(167,139,250,.18));
+    border: 1px solid rgba(34,211,238,.32);
+    display: grid; place-items: center;
+    box-shadow: 0 0 18px rgba(34,211,238,.16), inset 0 0 12px rgba(34,211,238,.08);
+  }
+  .brand .name { font-size: 14px; font-weight: 700; letter-spacing: .4px; }
+  .brand .sub { font-size: 9.5px; color: var(--dim); letter-spacing: 1.4px; margin-top: 1px; }
+  .divider { width: 1px; height: 22px; background: var(--line); }
+  .scene-title { color: var(--muted); font-size: 12.5px; }
+  .scene-title b { color: var(--text); font-weight: 600; }
+  .scene-title .sep { color: var(--dim); margin: 0 7px; }
+  .top-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .badge {
+    font-size: 11px; padding: 5px 9px; border-radius: 999px;
+    border: 1px solid rgba(34,211,238,.35); color: var(--cyan);
+    background: rgba(34,211,238,.07);
+  }
+  .model { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11.5px; }
+  .dot-live { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .btn {
+    height: 30px; padding: 0 13px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--panel-2); color: var(--text); font-size: 12px; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn.dim { color: var(--muted); }
+
+  /* ---------- main ---------- */
+  main { flex: 1 1 auto; display: grid; grid-template-columns: 336px 1fr 372px; min-height: 0; }
+
+  /* ---------- left ---------- */
+  .left { border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; }
+  .block { padding: 18px 18px 16px; border-bottom: 1px solid var(--line-soft); }
+  .label { font-size: 10.5px; color: var(--dim); letter-spacing: 1.2px; margin-bottom: 10px; }
+  .prompt-box {
+    border: 1px solid rgba(34,211,238,.32); border-radius: 10px;
+    background: linear-gradient(180deg, rgba(34,211,238,.05), rgba(34,211,238,.01));
+    padding: 11px 12px; min-height: 80px; line-height: 1.75; font-size: 13px;
+    color: #DCE3F2; box-shadow: 0 0 0 3px rgba(34,211,238,.035);
+  }
+  .caret { display: inline-block; width: 1.5px; height: 14px; background: var(--cyan); vertical-align: -2px; margin-left: 2px; }
+  .primary-btn {
+    margin-top: 10px; width: 100%; height: 38px; border-radius: 9px; border: 0;
+    background: linear-gradient(135deg, #22D3EE, #38BDF8);
+    color: #04222A; font-weight: 700; font-size: 13px; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 8px 24px rgba(34,211,238,.16);
+  }
+  .primary-btn kbd {
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    background: rgba(4,34,42,.16); padding: 2px 6px; border-radius: 5px;
+  }
+  .hint { margin-top: 10px; font-size: 11px; color: var(--dim); line-height: 1.9; }
+  .hint a { color: var(--muted); text-decoration: none; border-bottom: 1px dashed var(--line); }
+
+  .row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); margin: 9px 0; }
+  .row .val { color: var(--text); font-family: var(--mono); font-size: 12px; }
+  .slider { position: relative; height: 4px; border-radius: 4px; background: #1A2231; margin: 13px 0 5px; }
+  .slider .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 42%; border-radius: 4px; background: linear-gradient(90deg, var(--cyan), #67E8F9); }
+  .slider .thumb { position: absolute; left: 42%; top: 50%; width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%,-50%); background: #E9FBFF; box-shadow: 0 0 0 4px rgba(34,211,238,.16); }
+  .select { color: var(--text); font-size: 12px; border: 1px solid var(--line); background: var(--panel-2); padding: 4px 9px; border-radius: 7px; display: inline-flex; align-items: center; gap: 7px; }
+  .select i { color: var(--dim); font-style: normal; font-size: 8px; }
+
+  .export-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .mini {
+    height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2);
+    color: #C3CDE2; font-size: 11.5px; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .export-note { margin-top: 9px; font-size: 10.5px; color: var(--dim); }
+
+  .history { border-bottom: 0; margin-top: auto; }
+  .hist-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 9px; border-radius: 8px; color: var(--muted); font-size: 12px; }
+  .hist-item.active { background: rgba(34,211,238,.06); color: var(--text); border: 1px solid rgba(34,211,238,.16); }
+  .hist-item span.time { font-size: 10.5px; color: var(--dim); }
+
+  /* ---------- stage ---------- */
+  .stage-wrap { display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+  .stage-head { height: 54px; flex: 0 0 54px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; border-bottom: 1px solid var(--line-soft); }
+  .stage-head .t { font-size: 13.5px; font-weight: 700; }
+  .stage-head .t span { color: var(--dim); font-weight: 400; font-size: 11.5px; margin-left: 9px; font-family: var(--mono); letter-spacing: .5px; }
+  .legend { display: flex; gap: 14px; font-size: 11px; color: var(--dim); }
+  .legend i { display: inline-block; width: 7px; height: 7px; border-radius: 2px; margin-right: 5px; }
+
+  .stage {
+    flex: 1 1 auto; position: relative; display: flex; align-items: center; justify-content: center;
+    background-image:
+      linear-gradient(rgba(255,255,255,.026) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.026) 1px, transparent 1px);
+    background-size: 44px 44px;
+    background-position: center center;
+  }
+  .stage::before {
+    content: ""; position: absolute; width: 760px; height: 460px;
+    background: radial-gradient(closest-side, rgba(34,211,238,.07), transparent 72%);
+    filter: blur(6px);
+  }
+  .stage-inner { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; }
+  .ranges { display: grid; grid-template-columns: repeat(10, 54px); column-gap: 18px; height: 30px; align-items: end; margin-bottom: 12px; }
+  .range { position: relative; border-top: 1px dashed rgba(255,255,255,.22); padding-top: 7px; font-size: 10.5px; letter-spacing: .4px; color: var(--dim); white-space: nowrap; }
+  .range::before, .range::after { content: ""; position: absolute; top: 0; width: 1px; height: 7px; background: currentColor; opacity: .5; }
+  .range::before { left: 0; }
+  .range::after { right: 0; }
+  .range.left { grid-column: 1 / 7; color: rgba(34,211,238,.8); border-top-color: rgba(34,211,238,.4); }
+  .range.right { grid-column: 8 / 11; color: rgba(167,139,250,.85); border-top-color: rgba(167,139,250,.4); }
+  .range.pivot { grid-column: 7 / 8; color: var(--amber); border-top: 1px solid rgba(245,184,77,.55); text-align: center; padding-top: 5px; }
+
+  .bars { display: flex; align-items: flex-end; gap: 18px; }
+  .bar-cell { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 54px; }
+  .bar {
+    width: 54px; border-radius: 8px 8px 3px 3px; position: relative;
+    background: linear-gradient(180deg, #29364F, #1B2434);
+    border: 1px solid #2C3A55; border-bottom: 0;
+  }
+  .bar .v { position: absolute; top: -24px; width: 100%; text-align: center; font-family: var(--mono); font-size: 12.5px; color: #A6B2C9; }
+  .bar.pivot { background: linear-gradient(180deg, rgba(245,184,77,.88), rgba(245,184,77,.26)); border-color: rgba(245,184,77,.72); box-shadow: 0 0 34px rgba(245,184,77,.2); }
+  .bar.pivot .v { color: var(--amber); font-weight: 700; }
+  .bar.compare { background: linear-gradient(180deg, rgba(34,211,238,.85), rgba(34,211,238,.2)); border-color: rgba(34,211,238,.7); box-shadow: 0 0 34px rgba(34,211,238,.18); }
+  .bar.compare .v { color: var(--cyan); font-weight: 700; }
+  .bar.swap { background: linear-gradient(180deg, rgba(248,113,113,.82), rgba(248,113,113,.18)); border-color: rgba(248,113,113,.65); box-shadow: 0 0 30px rgba(248,113,113,.14); }
+  .bar.swap .v { color: var(--red); font-weight: 700; }
+  .idx { font-family: var(--mono); font-size: 10.5px; color: #4E586C; }
+  .ptr { font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 5px; line-height: 1.55; }
+  .ptr.i { color: var(--cyan); background: rgba(34,211,238,.1); border: 1px solid rgba(34,211,238,.3); }
+  .ptr.p { color: var(--amber); background: rgba(245,184,77,.1); border: 1px solid rgba(245,184,77,.32); }
+  .ptr.ghost { visibility: hidden; }
+
+  .caption-line {
+    flex: 0 0 46px; display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-size: 12.5px; color: #B9C3D8; border-top: 1px solid var(--line-soft);
+    background: linear-gradient(180deg, rgba(14,18,27,.35), rgba(14,18,27,.92));
+  }
+  .caption-line b { color: var(--cyan); font-weight: 600; }
+  .controls {
+    flex: 0 0 58px; display: flex; align-items: center; gap: 12px; padding: 0 22px;
+    border-top: 1px solid var(--line); background: #0B0F17;
+  }
+  .ctrl { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); display: grid; place-items: center; font-size: 10px; }
+  .ctrl.play { width: 38px; height: 38px; border-radius: 50%; background: var(--cyan); border-color: var(--cyan); color: #04222A; font-size: 13px; box-shadow: 0 0 24px rgba(34,211,238,.3); }
+  .track { flex: 1; height: 4px; border-radius: 4px; background: #1A2231; position: relative; }
+  .track .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 37%; border-radius: 4px; background: linear-gradient(90deg, #22D3EE, #67E8F9); }
+  .track .thumb { position: absolute; left: 37%; top: 50%; width: 11px; height: 11px; border-radius: 50%; transform: translate(-50%,-50%); background: #EAFDFF; box-shadow: 0 0 0 4px rgba(34,211,238,.16); }
+  .step-num { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  .speed { font-size: 11.5px; color: var(--muted); border: 1px solid var(--line); padding: 4px 8px; border-radius: 7px; }
+
+  /* ---------- right ---------- */
+  .right { border-left: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; }
+  .tabs { display: flex; gap: 2px; padding: 12px 14px 0; border-bottom: 1px solid var(--line); }
+  .tab { padding: 8px 11px 10px; font-size: 12px; color: var(--dim); border-bottom: 2px solid transparent; }
+  .tab.active { color: var(--text); border-bottom-color: var(--cyan); }
+  .pane { padding: 16px 18px; overflow: hidden; }
+  .summary { font-size: 12.5px; line-height: 1.85; color: #B9C3D8; }
+  .summary b { color: var(--text); }
+  .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .metric { border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; background: var(--panel-2); }
+  .metric .k { font-size: 9.5px; color: var(--dim); letter-spacing: .8px; }
+  .metric .v { font-family: var(--mono); font-size: 13px; color: var(--cyan); margin-top: 4px; }
+  .formula {
+    margin-top: 12px; border: 1px dashed #2A3550; border-radius: 9px; padding: 9px 12px;
+    font-family: "Cambria Math", "Times New Roman", serif; font-size: 14px; color: #C7D2FE;
+    text-align: center; background: rgba(167,139,250,.045);
+  }
+  .sub { margin: 16px 0 8px; font-size: 9.5px; letter-spacing: 1.2px; color: var(--dim); }
+  .step-card { border-left: 2px solid var(--cyan); background: rgba(34,211,238,.05); padding: 9px 11px; border-radius: 0 8px 8px 0; font-size: 12px; line-height: 1.8; color: #C3CDE2; }
+  pre.code {
+    font-family: var(--mono); font-size: 10.5px; line-height: 1.8; color: #9FB0CC;
+    background: #0B0F17; border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px;
+    white-space: pre; overflow: hidden;
+  }
+  pre.code .ln { color: #3E4A61; display: inline-block; width: 15px; }
+  pre.code .kw { color: var(--violet); }
+
+  .trace { border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+  .trace-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--line-soft); }
+  .trace-row:last-child { border-bottom: 0; }
+  .trace-row span { width: 62px; color: var(--dim); font-size: 10.5px; }
+  .trace-row b { color: #C6D0E4; font-weight: 500; }
+  .trace-row i { margin-left: auto; font-style: normal; font-family: var(--mono); font-size: 10px; color: var(--dim); }
+  .related { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font-size: 11px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); background: var(--panel-2); }
+
+  footer {
+    height: 40px; flex: 0 0 40px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; border-top: 1px solid var(--line); color: var(--dim); font-size: 11px;
+    background: #0A0E15;
+  }
+  footer .k { color: var(--muted); font-family: var(--mono); font-size: 10px; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; margin-right: 4px; }
+  .ghost-note { color: #3F4A60; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">
+        <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+          <rect x="2" y="8" width="3.4" height="7" rx="1" fill="#22D3EE"/>
+          <rect x="6.8" y="4" width="3.4" height="11" rx="1" fill="#67E8F9"/>
+          <rect x="11.6" y="6" width="3.4" height="9" rx="1" fill="#A78BFA"/>
+        </svg>
+      </div>
+      <div>
+        <div class="name">算法视界</div>
+        <div class="sub">ALGOVIZ STUDIO</div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="scene-title"><b>快速排序</b><span class="sep">/</span>分区过程</div>
+    <div class="top-right">
+      <div class="badge">本地引擎 · 0ms</div>
+      <div class="model"><span class="dot-live"></span>DeepSeek 已连接</div>
+      <button class="btn">导出</button>
+      <button class="btn dim">设置</button>
+      <button class="btn dim">GitHub</button>
+    </div>
+  </header>
+
+  <main>
+    <aside class="left">
+      <section class="block">
+        <div class="label">用一句话描述</div>
+        <div class="prompt-box">用 10 个元素演示快速排序，突出指针移动和交换过程<span class="caret"></span></div>
+        <button class="primary-btn">生成动画 <kbd>Ctrl ↵</kbd></button>
+        <div class="hint">试试：<a>冒泡排序</a> · <a>二叉树层序遍历</a> · <a>TCP 三次握手</a> · <a>Dijkstra</a></div>
+      </section>
+
+      <section class="block">
+        <div class="label">参数</div>
+        <div class="row"><span>数组规模</span><span class="val">10</span></div>
+        <div class="slider"><div class="fill"></div><div class="thumb"></div></div>
+        <div class="row"><span>算法</span><span class="select">快速排序 <i>▼</i></span></div>
+        <div class="row"><span>基准策略</span><span class="select">末元素 <i>▼</i></span></div>
+        <div class="row"><span>播放速度</span><span class="select">1× <i>▼</i></span></div>
+      </section>
+
+      <section class="block">
+        <div class="label">导出</div>
+        <div class="export-row">
+          <button class="mini">GIF</button>
+          <button class="mini">讲稿</button>
+          <button class="mini">卡片</button>
+        </div>
+        <div class="export-note">当前场景 · 38 步 · 1280×720</div>
+      </section>
+
+      <section class="block history">
+        <div class="label">最近场景</div>
+        <div class="hist-item active"><span>快速排序</span><span class="time">刚刚</span></div>
+        <div class="hist-item"><span>TCP 三次握手</span><span class="time">12 分钟前</span></div>
+        <div class="hist-item"><span>二叉树层序遍历</span><span class="time">昨天</span></div>
+      </section>
+    </aside>
+
+    <section class="stage-wrap">
+      <div class="stage-head">
+        <div class="t">快速排序 <span>STEP 14 / 38</span></div>
+        <div class="legend">
+          <span><i style="background:#22D3EE"></i>比较</span>
+          <span><i style="background:#F87171"></i>交换</span>
+          <span><i style="background:#F5B84D"></i>基准</span>
+          <span><i style="background:#34D399"></i>已排序</span>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-inner">
+          <div class="ranges">
+            <div class="range left">左区 ≤ 7</div>
+            <div class="range pivot">基准</div>
+            <div class="range right">右区 &gt; 7</div>
+          </div>
+          <div class="bars">
+            <div class="bar-cell">
+              <div class="bar" style="height:190px"><span class="v">5</span></div>
+              <div class="idx">0</div>
+              <div class="ptr ghost">i</div>
+            </div>
+            <div class="bar-cell">
+              <div class="bar" style="height:130px"><span class="v">3</span></div>
+              <div class="idx">1</div>
+              <div class="ptr ghost">i</div>
+            </div>
+            <div class="bar-cell">
+              <div class="bar" style="height:280px"><span class="v">8</span></div>
+              <div class="idx">2</div>
+              <div class="ptr ghost">i</div>
+            </div>
+            <div class="bar-cell">
+              <div class="bar compare" style="height:70px"><span class="v">1</span></div>
+              <div class="idx" style="color:#22D3EE">3</div>
+              <div class="ptr i">i</div>
+            </div>
+            <div class="bar-cell">
+              <div class="bar" style="height:310px"><span class="v">9</span></div>
+              <div class="idx">4</div>
+              <div class="ptr ghost">i</div>
+            </div>
+            <div class="bar-cell">
+              <div class="bar" style="height:100px"><span class="v">2</span></div>
+              <div class="idx">5</div>
+              <div class="ptr ghost">i</div>
+            </div>
+            <div class="bar-cell">
+              <div class="bar pivot" style="height:250px"><span class="v">7</span></div>
+              <div class="idx" style="color:#F5B84D">6</div>
+              <div class="ptr p">pivot</div>
+            </div>
+            <div class="bar-cell">
+              <div class="bar swap" style="height:160px"><span class="v">4</span></div>
+              <div class="idx" style="color:#F87171">7</div>
+              <div class="ptr ghost">i</div>
+            </div>
+            <div class="bar-cell">
+              <div class="bar" style="height:220px"><span class="v">6</span></div>
+              <div class="idx">8</div>
+              <div class="ptr ghost">i</div>
+            </div>
+            <div class="bar-cell">
+              <div class="bar" style="height:340px"><span class="v">10</span></div>
+              <div class="idx">9</div>
+              <div class="ptr ghost">i</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="caption-line"><b>7 已归位</b>，左区全部 ≤ 7、右区全部 &gt; 7，接下来递归处理 [5,3,1,2,4,6]。</div>
+
+      <div class="controls">
+        <button class="ctrl">⏮</button>
+        <button class="ctrl play">▶</button>
+        <button class="ctrl">⏭</button>
+        <div class="track">
+          <div class="fill"></div>
+          <div class="thumb"></div>
+        </div>
+        <span class="step-num">14 / 38</span>
+        <span class="speed">1×</span>
+      </div>
+    </section>
+
+    <aside class="right">
+      <div class="tabs">
+        <span class="tab active">原理</span>
+        <span class="tab">复杂度</span>
+        <span class="tab">代码</span>
+        <span class="tab">校验</span>
+      </div>
+      <div class="pane">
+        <p class="summary">选择基准，把小于基准的元素放左边、大于的放右边，再对两侧递归。核心是 <b>分区（partition）</b> 这一步。</p>
+
+        <div class="metrics">
+          <div class="metric"><div class="k">TIME</div><div class="v">O(n log n)</div></div>
+          <div class="metric"><div class="k">SPACE</div><div class="v">O(log n)</div></div>
+        </div>
+
+        <div class="formula">T(n) = 2T(n/2) + O(n)</div>
+
+        <div class="sub">当前步骤</div>
+        <div class="step-card">基准 <b style="color:#F5B84D">7</b> 就位（下标 6）。i 指针停在 3，下一轮把 7 与 i+1 交换，递归左右两段。</div>
+
+        <div class="sub">伪代码</div>
+        <pre class="code"><span class="ln">1</span><span class="kw">function</span> quickSort(a, l, r):
+<span class="ln">2</span>  <span class="kw">if</span> l &gt;= r <span class="kw">return</span>
+<span class="ln">3</span>  p = partition(a, l, r)
+<span class="ln">4</span>  quickSort(a, l, p - 1)
+<span class="ln">5</span>  quickSort(a, p + 1, r)</pre>
+
+        <div class="sub">生成链路</div>
+        <div class="trace">
+          <div class="trace-row"><span>意图识别</span><b>快速排序 · 10 元素</b><i>2ms</i></div>
+          <div class="trace-row"><span>路由</span><b>内置引擎 sort.quick</b><i>本地</i></div>
+          <div class="trace-row"><span>校验</span><b style="color:#34D399">通过 · 0 errors</b><i>1ms</i></div>
+          <div class="trace-row"><span>生成</span><b>38 步 · 可回溯</b><i>3ms</i></div>
+        </div>
+
+        <div class="sub">相关场景</div>
+        <div class="related">
+          <span class="chip">冒泡排序</span>
+          <span class="chip">归并排序</span>
+          <span class="chip">堆排序</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <div><span class="k">Space</span>播放 / 暂停 <span class="k">← →</span>单步 <span class="k">Home</span><span class="k">End</span>首末步</div>
+    <div class="ghost-note">场景可导出 GIF · 讲稿 Markdown · 教学卡片</div>
+  </footer>
+
+</div>
+</body>
+</html>

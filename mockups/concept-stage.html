@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Concept A · Stage</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #08090B;
+    --paper: #F2EDE4;
+    --amber: #E8A33D;
+    --dim: rgba(242,237,228,.46);
+    --line: rgba(242,237,228,.14);
+    --mono: "Cascadia Mono", Consolas, monospace;
+    --serif: "Noto Serif SC", "STZhongsong", "SimSun", serif;
+    --sans: "DengXian", "Microsoft YaHei", sans-serif;
+  }
+  html, body { width: 1600px; height: 1000px; overflow: hidden; }
+  body { position: relative; background: var(--bg); color: var(--paper); font-family: var(--sans); }
+  .scene { position: absolute; inset: 0; overflow: hidden; }
+  .scene::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(900px 620px at 72% 6%, rgba(232,163,61,.10), transparent 62%),
+      radial-gradient(900px 760px at 10% 92%, rgba(46,93,120,.12), transparent 62%);
+  }
+  .scene::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 246px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(242,237,228,.16), transparent);
+  }
+  .watermark {
+    position: absolute; left: 26px; bottom: 150px; font-family: "Bodoni MT", Georgia, serif;
+    font-size: 280px; line-height: 1; color: rgba(242,237,228,.035); letter-spacing: -8px;
+  }
+
+  /* top hud */
+  .hud { position: absolute; top: 26px; left: 48px; right: 48px; height: 34px; display: flex; align-items: center; gap: 26px; z-index: 10; }
+  .brand { font-family: var(--mono); font-size: 11px; letter-spacing: 4px; }
+  .brand b { font-weight: 600; }
+  .hud .scene-name { font-size: 11px; letter-spacing: 2px; color: var(--dim); }
+  .hud .scene-name i { font-style: normal; color: var(--paper); }
+  .hud-right { margin-left: auto; display: flex; align-items: center; gap: 22px; font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--dim); }
+  .live { display: inline-flex; align-items: center; gap: 7px; color: var(--paper); }
+  .live .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+  .hud-right span.lnk { color: var(--paper); border-bottom: 1px solid rgba(242,237,228,.3); padding-bottom: 2px; }
+
+  /* title */
+  .title { position: absolute; left: 64px; top: 108px; z-index: 6; }
+  .kicker { font-family: var(--mono); font-size: 9px; letter-spacing: 3px; color: var(--amber); }
+  h1 {
+    font-family: var(--serif); font-size: 118px; font-weight: 600; letter-spacing: 6px;
+    line-height: 1.05; margin-top: 12px; text-shadow: 0 10px 40px rgba(0,0,0,.5);
+  }
+  .sub { margin-top: 10px; font-size: 12.5px; letter-spacing: 1px; color: var(--dim); }
+
+  /* bars */
+  .bars {
+    position: absolute; left: 0; right: 0; bottom: 258px; height: 460px;
+    display: flex; align-items: flex-end; justify-content: center; gap: 30px; z-index: 2;
+  }
+  .cell { width: 86px; display: flex; flex-direction: column; align-items: center; gap: 9px; position: relative; }
+  .bar {
+    width: 86px; background: rgba(242,237,228,.92); position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  }
+  .bar .v { position: absolute; top: -24px; width: 100%; text-align: center; font-family: var(--mono); font-size: 13px; color: rgba(242,237,228,.55); }
+  .bar.pivot { background: var(--amber); box-shadow: 0 0 60px rgba(232,163,61,.35), 0 20px 60px rgba(0,0,0,.35); }
+  .bar.pivot .v { color: var(--amber); }
+  .bar.cmp {
+    background: repeating-linear-gradient(45deg, rgba(242,237,228,.85) 0 2px, rgba(242,237,228,.06) 2px 9px);
+    border: 1px solid rgba(242,237,228,.7);
+  }
+  .bar.cmp .v { color: var(--paper); }
+  .bar.mv { background: transparent; border: 2px dashed rgba(242,237,228,.65); box-shadow: none; }
+  .bar.mv .v { color: rgba(242,237,228,.8); }
+  .idx { font-family: var(--mono); font-size: 9px; color: rgba(242,237,228,.28); letter-spacing: 1px; }
+  .ptr {
+    font-family: var(--mono); font-size: 8px; letter-spacing: 1px; color: #0B0B0C;
+    background: var(--paper); padding: 2px 6px;
+  }
+  .ptr.p { background: var(--amber); }
+  .ptr.hide { visibility: hidden; }
+
+  .ranges { position: absolute; left: 0; right: 0; top: 292px; z-index: 3; }
+  .rng {
+    position: absolute; border-top: 1px solid rgba(242,237,228,.22); padding-top: 6px;
+    font-family: var(--mono); font-size: 8px; letter-spacing: 1.5px; color: rgba(242,237,228,.42);
+  }
+
+  /* caption + film */
+  .caption {
+    position: absolute; left: 0; right: 0; bottom: 214px; text-align: center; z-index: 6;
+    font-size: 14px; letter-spacing: .5px; color: rgba(242,237,228,.82);
+  }
+  .caption b { color: var(--amber); font-weight: 600; }
+
+  .film {
+    position: absolute; left: 300px; right: 300px; bottom: 150px; height: 46px;
+    display: flex; gap: 7px; align-items: center; z-index: 6;
+  }
+  .frame {
+    flex: 1; height: 38px; border: 1px solid rgba(242,237,228,.14);
+    display: flex; align-items: flex-end; justify-content: center; gap: 2px; padding: 5px 4px;
+    background: rgba(242,237,228,.02);
+  }
+  .frame i { width: 2px; background: rgba(242,237,228,.35); }
+  .frame.on { border-color: var(--amber); background: rgba(232,163,61,.12); transform: translateY(-3px); }
+  .frame.on i { background: var(--amber); }
+
+  .transport { position: absolute; left: 48px; bottom: 152px; z-index: 6; display: flex; align-items: center; gap: 14px; font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px; color: var(--dim); }
+  .transport .pl { width: 26px; height: 26px; border: 1px solid rgba(242,237,228,.3); border-radius: 50%; display: grid; place-items: center; color: var(--paper); font-size: 7px; }
+  .transport b { color: var(--paper); font-weight: 400; }
+
+  /* command bar */
+  .command {
+    position: absolute; left: 300px; right: 300px; bottom: 70px; height: 64px;
+    display: flex; align-items: center; gap: 16px; padding: 0 8px 0 22px;
+    background: rgba(18,18,20,.62); border: 1px solid rgba(242,237,228,.14);
+    backdrop-filter: blur(18px); z-index: 7;
+  }
+  .command .ph { flex: 1; font-size: 14px; color: rgba(242,237,228,.5); letter-spacing: .5px; }
+  .command .ph b { color: var(--paper); font-weight: 500; }
+  .command button {
+    width: 150px; height: 48px; border: 0; background: var(--amber); color: #0B0B0C;
+    font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: 2px;
+  }
+  .kbd {
+    position: absolute; left: 0; right: 0; bottom: 40px; text-align: center;
+    font-family: var(--mono); font-size: 8px; letter-spacing: 1.5px;
+    color: rgba(242,237,228,.28); z-index: 6;
+  }
+
+  .chip {
+    position: absolute; right: 48px; top: 148px; z-index: 6;
+    border: 1px solid rgba(242,237,228,.16); padding: 6px 10px;
+    font-family: var(--mono); font-size: 8px; letter-spacing: 1.4px; color: var(--dim);
+  }
+  .chip b { color: var(--paper); font-weight: 400; }
+
+  .vtab {
+    position: absolute; right: 0; top: 408px; width: 40px; height: 224px; z-index: 8;
+    background: rgba(16,16,18,.62); border: 1px solid rgba(242,237,228,.12); border-right: 0;
+    backdrop-filter: blur(14px);
+    writing-mode: vertical-rl; text-orientation: mixed;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-family: var(--mono); font-size: 8px; letter-spacing: 3px; color: var(--dim);
+  }
+  .vtab i { width: 4px; height: 4px; border-radius: 50%; background: var(--amber); }
+
+  .rail {
+    position: absolute; left: 30px; top: 300px; width: 12px; height: 400px; z-index: 6;
+    background: repeating-linear-gradient(180deg, rgba(242,237,228,.22) 0 1px, transparent 1px 10.5px);
+  }
+  .rail .cur { position: absolute; left: -3px; top: 36%; width: 18px; height: 2px; background: var(--amber); }
+  .rail-lbl {
+    position: absolute; left: 50px; font-family: var(--mono); font-size: 7px;
+    letter-spacing: 1px; color: rgba(242,237,228,.26); z-index: 6;
+  }
+
+  /* notes card */
+  .card {
+    position: absolute; right: 48px; top: 548px; width: 366px; padding: 18px 20px 16px;
+    background: rgba(16,16,18,.55); border: 1px solid rgba(242,237,228,.12);
+    backdrop-filter: blur(16px); z-index: 8;
+  }
+  .card .lbl { font-family: var(--mono); font-size: 8px; letter-spacing: 2px; color: var(--amber); }
+  .card h3 { font-family: var(--serif); font-size: 20px; font-weight: 600; margin: 8px 0 8px; letter-spacing: 1px; }
+  .card p { font-size: 11.5px; line-height: 1.8; color: rgba(242,237,228,.68); }
+  .card .foot { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(242,237,228,.1); display: flex; justify-content: space-between; font-family: var(--mono); font-size: 8px; letter-spacing: 1px; color: var(--dim); }
+  .card .foot b { color: var(--paper); font-weight: 400; }
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="watermark">014</div>
+
+  <div class="hud">
+    <div class="brand"><b>ALGOVIZ</b></div>
+    <div class="scene-name">快速排序 <i>/</i> 分区过程</div>
+    <div class="hud-right">
+      <span class="live"><span class="dot"></span>LIVE · 本地引擎 0 MS</span>
+      <span class="lnk">导出 ↗</span>
+      <span class="lnk">设置</span>
+    </div>
+  </div>
+
+  <div class="chip">O(n log n) · 38 FRAMES · <b>5 ms</b></div>
+
+  <div class="rail"><i class="cur"></i></div>
+  <div class="rail-lbl" style="top:300px">01</div>
+  <div class="rail-lbl" style="top:440px">14</div>
+  <div class="rail-lbl" style="top:690px">38</div>
+
+  <div class="vtab"><span>讲解 · NOTES</span><i></i></div>
+
+  <div class="title">
+    <div class="kicker">STEP 014 — PARTITION / 38</div>
+    <h1>分区</h1>
+    <div class="sub">以 7 为基准 · 10 个元素 · 左区 ≤ 7，右区 &gt; 7</div>
+  </div>
+
+  <div class="ranges">
+    <div class="rng" style="left:235px; width:666px;">≤ 7 · LEFT</div>
+    <div class="rng" style="left:1047px; width:318px;">&gt; 7 · RIGHT</div>
+  </div>
+
+  <div class="bars">
+    <div class="cell"><div class="bar" style="height:170px"><span class="v">5</span></div><div class="idx">0</div><div class="ptr hide">i</div></div>
+    <div class="cell"><div class="bar" style="height:110px"><span class="v">3</span></div><div class="idx">1</div><div class="ptr hide">i</div></div>
+    <div class="cell"><div class="bar" style="height:250px"><span class="v">8</span></div><div class="idx">2</div><div class="ptr hide">i</div></div>
+    <div class="cell"><div class="bar cmp" style="height:72px"><span class="v">1</span></div><div class="idx">3</div><div class="ptr">CMP</div></div>
+    <div class="cell"><div class="bar" style="height:280px"><span class="v">9</span></div><div class="idx">4</div><div class="ptr hide">i</div></div>
+    <div class="cell"><div class="bar" style="height:92px"><span class="v">2</span></div><div class="idx">5</div><div class="ptr">i</div></div>
+    <div class="cell"><div class="bar pivot" style="height:215px"><span class="v">7</span></div><div class="idx">6</div><div class="ptr p">PIVOT</div></div>
+    <div class="cell"><div class="bar mv" style="height:135px"><span class="v">4</span></div><div class="idx">7</div><div class="ptr hide">i</div></div>
+    <div class="cell"><div class="bar" style="height:185px"><span class="v">6</span></div><div class="idx">8</div><div class="ptr hide">i</div></div>
+    <div class="cell"><div class="bar" style="height:330px"><span class="v">10</span></div><div class="idx">9</div><div class="ptr hide">i</div></div>
+  </div>
+
+  <div class="caption"><b>7 与 4 交换</b>　基准归位，左区 6 个元素均 ≤ 7</div>
+
+  <div class="transport">
+    <span class="pl">▶</span>
+    <span><b>014</b> / 038</span>
+    <span>1.0×</span>
+  </div>
+
+  <div class="film" id="film"></div>
+
+  <div class="command">
+    <div class="ph"><b>用一句话描述你想看的原理</b>　例如：TCP 三次握手，演示一次丢包重传</div>
+    <button>生成动画</button>
+  </div>
+  <div class="kbd">SPACE 播放 · ← → 单步 · ⌘K 聚焦输入</div>
+</div>
+
+<script>
+  (function () {
+    var host = document.getElementById('film');
+    var seed = [5, 3, 8, 1, 9, 2, 7, 4, 6, 10];
+    for (var i = 0; i < 20; i++) {
+      var f = document.createElement('div');
+      f.className = 'frame' + (i === 13 ? ' on' : '');
+      var base = (i * 3 + 4) % 10;
+      for (var k = 0; k < 5; k++) {
+        var b = document.createElement('i');
+        b.style.height = (8 + (seed[(base + k) % 10] * 2 + i) % 22) + 'px';
+        f.appendChild(b);
+      }
+      host.appendChild(f);
+    }
+  })();
+</script>
+</body>
+</html>

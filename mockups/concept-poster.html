@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Concept C · Poster</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --paper: #F1EFE7;
+    --ink: #0E0E0E;
+    --blue: #1B2CFF;
+    --orange: #FF4B1F;
+    --gray: #B9B5A8;
+  }
+  html, body { width: 1600px; height: 1000px; overflow: hidden; }
+  body {
+    position: relative; background: var(--paper); color: var(--ink);
+    font-family: "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: "Cascadia Mono", Consolas, monospace; }
+
+  header {
+    position: absolute; top: 32px; left: 40px; right: 40px; height: 74px;
+    display: flex; align-items: flex-end; gap: 24px;
+    border-bottom: 4px solid var(--ink); padding-bottom: 10px;
+  }
+  .brand { font-size: 26px; font-weight: 900; letter-spacing: 3px; }
+  .brand span { font-size: 11px; vertical-align: top; margin-left: 3px; }
+  .meta { margin-left: auto; font-size: 10px; line-height: 1.5; letter-spacing: 1px; text-align: right; }
+  .issue { font-size: 10px; letter-spacing: 1px; padding: 5px 9px; background: var(--ink); color: var(--paper); }
+
+  .title-block { position: absolute; top: 132px; left: 40px; width: 820px; }
+  .kicker { font-size: 10px; letter-spacing: 3px; font-weight: 700; color: var(--blue); }
+  h1 {
+    font-family: "Arial Black", "Microsoft YaHei", sans-serif;
+    font-size: 152px; font-weight: 900; line-height: 1; letter-spacing: -7px;
+    margin-top: 12px;
+  }
+  .tag { margin-top: 14px; font-size: 13px; letter-spacing: 1px; }
+
+  .lede { position: absolute; top: 168px; left: 920px; width: 600px; }
+  .lede p { font-size: 16px; line-height: 1.75; }
+  .lede .meta-row {
+    margin-top: 22px; padding-top: 10px; border-top: 1px solid var(--ink);
+    font-size: 10px; letter-spacing: 2px;
+  }
+
+  .canvas {
+    position: absolute; top: 372px; left: 40px; width: 860px; height: 430px;
+    background: var(--blue); border: 4px solid var(--ink); padding: 22px 24px 18px;
+    color: #fff;
+  }
+  .ch { display: flex; justify-content: space-between; font-size: 9px; letter-spacing: 2px; }
+  .bars {
+    position: absolute; left: 24px; right: 24px; bottom: 56px; height: 330px;
+    display: flex; align-items: flex-end; justify-content: center; gap: 20px;
+  }
+  .cell { width: 62px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .bar { width: 62px; background: #fff; position: relative; border: 1px solid #fff; }
+  .bar .v { position: absolute; top: -22px; width: 100%; text-align: center; font-size: 12px; font-weight: 700; }
+  .bar.pivot { background: var(--orange); border-color: var(--orange); }
+  .bar.pivot .v { color: var(--orange); }
+  .bar.cmp { background: repeating-linear-gradient(45deg, #fff 0 3px, var(--blue) 3px 9px); }
+  .bar.cmp .v { color: #fff; }
+  .bar.mv { background: transparent; border: 2px dashed #fff; }
+  .bar.mv .v { color: #fff; }
+  .idx { font-size: 9px; letter-spacing: 1px; color: rgba(255,255,255,.65); }
+  .ranges { position: absolute; left: 24px; right: 24px; top: 42px; height: 18px; font-size: 9px; letter-spacing: 1px; }
+  .rng { position: absolute; top: 0; border-top: 1px solid rgba(255,255,255,.7); padding-top: 3px; }
+
+  .spec {
+    position: absolute; top: 372px; left: 930px; width: 630px; height: 430px;
+    display: grid; grid-template-rows: 1fr 1fr 1fr; gap: 12px;
+  }
+  .block { display: flex; align-items: flex-end; justify-content: space-between; padding: 16px 20px; }
+  .block b { font-weight: 900; line-height: .9; }
+  .block span { font-size: 9px; letter-spacing: 2px; }
+  .block.blue { background: var(--blue); color: #fff; }
+  .block.blue b { font-size: 92px; letter-spacing: -5px; }
+  .block.black { background: var(--ink); color: var(--paper); }
+  .block.black b { font-size: 40px; letter-spacing: -1px; }
+  .block.orange { background: var(--orange); color: var(--ink); }
+  .block.orange b { font-size: 54px; letter-spacing: -2px; }
+
+  .prompt {
+    position: absolute; top: 832px; left: 40px; width: 1160px; height: 70px;
+    background: var(--ink); color: var(--paper); display: flex; align-items: center;
+    padding: 0 10px 0 22px; gap: 20px;
+  }
+  .prompt .ph { flex: 1; font-size: 15px; letter-spacing: .5px; color: rgba(241,239,231,.55); }
+  .prompt .ph b { color: #fff; font-weight: 500; }
+  .prompt button {
+    width: 176px; height: 50px; border: 0; background: var(--orange); color: var(--ink);
+    font-family: inherit; font-size: 14px; font-weight: 900; letter-spacing: 2px;
+  }
+
+  .params {
+    position: absolute; top: 832px; left: 1220px; width: 340px; height: 70px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; border: 1px solid var(--ink);
+  }
+  .params div {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; letter-spacing: .5px; border-right: 1px solid var(--ink);
+  }
+  .params div:last-child { border-right: 0; }
+
+  footer {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 80px;
+    background: var(--ink); color: var(--paper); display: flex; align-items: center;
+    padding: 0 40px; gap: 24px;
+  }
+  .tl-label { font-size: 9px; letter-spacing: 3px; width: 90px; }
+  .ticks {
+    flex: 1; height: 28px; position: relative;
+    background-image: repeating-linear-gradient(90deg, rgba(241,239,231,.55) 0 1px, transparent 1px 25.6px);
+  }
+  .ticks::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+    background: rgba(241,239,231,.4);
+  }
+  .mark {
+    position: absolute; left: 36%; bottom: -2px; width: 26px; height: 34px;
+    background: var(--orange); transform: translateX(-2px);
+  }
+  .mark::after { content: "14"; position: absolute; top: 9px; left: 6px; color: var(--ink); font-size: 10px; font-weight: 700; }
+  .tl-num { font-size: 30px; font-weight: 900; letter-spacing: -1px; }
+  .tl-num span { font-size: 12px; color: var(--orange); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">ALGOVIZ<span>®</span></div>
+  <div class="meta">ALGORITHM ATELIER<br>VOL. 01 — 2026</div>
+  <div class="issue">NO.014</div>
+</header>
+
+<div class="title-block">
+  <div class="kicker">SORTING / PARTITION — 排序 / 分区</div>
+  <h1>分区</h1>
+  <div class="tag">以 7 为基准 · 把 10 个元素分成两半</div>
+</div>
+
+<div class="lede">
+  <p>把小于基准的放左边，大于的放右边，再对两侧递归。整个快速排序，本质上就是这一件事。</p>
+  <div class="meta-row">QUICKSORT / O(N LOG N) / 320 MS / 38 FRAMES</div>
+</div>
+
+<div class="canvas">
+  <div class="ch"><span>FIG.01 — PARTITION</span><span>STEP 14 / 38</span></div>
+  <div class="ranges">
+    <div class="rng" style="left:0; width:492px;">≤ 7 · LEFT</div>
+    <div class="rng" style="left:552px; width:236px;">&gt; 7 · RIGHT</div>
+  </div>
+  <div class="bars">
+    <div class="cell"><div class="bar" style="height:160px"><span class="v">5</span></div><div class="idx">0</div></div>
+    <div class="cell"><div class="bar" style="height:110px"><span class="v">3</span></div><div class="idx">1</div></div>
+    <div class="cell"><div class="bar" style="height:240px"><span class="v">8</span></div><div class="idx">2</div></div>
+    <div class="cell"><div class="bar cmp" style="height:70px"><span class="v">1</span></div><div class="idx">3</div></div>
+    <div class="cell"><div class="bar" style="height:270px"><span class="v">9</span></div><div class="idx">4</div></div>
+    <div class="cell"><div class="bar" style="height:90px"><span class="v">2</span></div><div class="idx">5</div></div>
+    <div class="cell"><div class="bar pivot" style="height:210px"><span class="v">7</span></div><div class="idx">6</div></div>
+    <div class="cell"><div class="bar mv" style="height:130px"><span class="v">4</span></div><div class="idx">7</div></div>
+    <div class="cell"><div class="bar" style="height:180px"><span class="v">6</span></div><div class="idx">8</div></div>
+    <div class="cell"><div class="bar" style="height:300px"><span class="v">10</span></div><div class="idx">9</div></div>
+  </div>
+</div>
+
+<div class="spec">
+  <div class="block blue"><b>10</b><span>ELEMENTS</span></div>
+  <div class="block black"><b>O(n log n)</b><span>TIME COMPLEXITY</span></div>
+  <div class="block orange"><b>14 / 38</b><span>CURRENT FRAME</span></div>
+</div>
+
+<div class="prompt">
+  <div class="ph"><b>用一句话描述你想看的原理</b>　例如：快速排序的分区过程，突出指针移动</div>
+  <button>生成 →</button>
+</div>
+
+<div class="params">
+  <div>n = 10</div>
+  <div>pivot = last</div>
+  <div>320 ms</div>
+</div>
+
+<footer>
+  <div class="tl-label">TIMELINE</div>
+  <div class="ticks"><div class="mark"></div></div>
+  <div class="tl-num">014 <span>/ 038</span></div>
+</footer>
+
+</body>
+</html>

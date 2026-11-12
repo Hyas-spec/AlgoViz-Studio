@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>AlgoViz · 手稿版界面</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --paper: #F2ECDF;
+    --paper-2: #F8F3E7;
+    --ink: #17222C;
+    --ink-2: #2B3947;
+    --muted: #6E6455;
+    --faint: #9C917F;
+    --rule: #D6CBB6;
+    --rule-soft: #E5DCC9;
+    --verm: #C0452C;
+    --teal: #2E5D55;
+    --serif: "Noto Serif SC", "STZhongsong", "SimSun", "Songti SC", serif;
+    --sans: "DengXian", "Microsoft YaHei", "PingFang SC", sans-serif;
+    --mono: "Cascadia Mono", "Consolas", monospace;
+    --display: "Bodoni MT", "Didot", "Georgia", serif;
+  }
+  html, body { width: 1600px; height: 1000px; overflow: hidden; }
+  body {
+    position: relative;
+    background:
+      radial-gradient(1100px 620px at 18% -8%, #FBF7EC 0%, rgba(251,247,236,0) 62%),
+      radial-gradient(900px 520px at 100% 100%, #EDE6D5 0%, rgba(237,230,213,0) 58%),
+      var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    -webkit-font-smoothing: antialiased;
+  }
+  .grain {
+    position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    opacity: .055; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+  }
+
+  /* crop marks */
+  .crop { position: absolute; width: 11px; height: 11px; z-index: 3; }
+  .crop::before, .crop::after { content: ""; position: absolute; background: #B9AC96; }
+  .crop::before { width: 11px; height: 1px; }
+  .crop::after { width: 1px; height: 11px; }
+  .crop.tl { top: 16px; left: 16px; }
+  .crop.tl::before { top: 0; left: 0; } .crop.tl::after { top: 0; left: 0; }
+  .crop.tr { top: 16px; right: 16px; }
+  .crop.tr::before { top: 0; right: 0; } .crop.tr::after { top: 0; right: 0; }
+  .crop.bl { bottom: 16px; left: 16px; }
+  .crop.bl::before { bottom: 0; left: 0; } .crop.bl::after { bottom: 0; left: 0; }
+  .crop.br { bottom: 16px; right: 16px; }
+  .crop.br::before { bottom: 0; right: 0; } .crop.br::after { bottom: 0; right: 0; }
+
+  /* ---------- masthead ---------- */
+  .masthead {
+    position: absolute; top: 30px; left: 48px; right: 48px; height: 46px;
+    display: flex; align-items: center; gap: 28px;
+  }
+  .brand { display: flex; align-items: center; gap: 11px; }
+  .mark {
+    width: 26px; height: 26px; border: 1px solid var(--ink); position: relative;
+    display: grid; place-items: center;
+  }
+  .mark svg { display: block; }
+  .wordmark {
+    font-family: var(--display); font-size: 21px; letter-spacing: 2.4px;
+    line-height: 1; padding-top: 2px;
+  }
+  .brand .cn { font-size: 10px; color: var(--muted); letter-spacing: 2px; margin-left: 2px; }
+  .mast-meta {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 1.6px; color: var(--muted);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .mast-meta i { font-style: normal; color: var(--faint); }
+  .mast-right { margin-left: auto; display: flex; align-items: center; gap: 22px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 1.1px; color: var(--muted); }
+  .live { display: inline-flex; align-items: center; gap: 7px; color: var(--ink); }
+  .live em { font-style: normal; color: var(--faint); }
+  .live .pt { width: 5px; height: 5px; border-radius: 50%; background: var(--verm); box-shadow: 0 0 0 3px rgba(192,69,44,.12); }
+  .mast-right a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule); padding-bottom: 2px; }
+  .mast-right a span { color: var(--verm); }
+
+  .rule-a { position: absolute; top: 86px; left: 48px; right: 48px; height: 2px; background: var(--ink); transform-origin: left center; }
+  .rule-b { position: absolute; top: 92px; left: 48px; right: 48px; height: 1px; background: var(--rule); transform-origin: left center; }
+
+  /* ---------- folio grid ---------- */
+  .folio {
+    position: absolute; top: 112px; left: 48px; right: 48px; bottom: 128px;
+    display: grid; grid-template-columns: 300px minmax(0, 1fr) 256px 30px;
+  }
+  .col-left { padding-right: 30px; }
+  .col-center { border-left: 1px solid var(--rule); border-right: 1px solid var(--rule); padding: 2px 34px 0; position: relative; }
+  .col-right { padding-left: 30px; }
+  .tabs { border-left: 0; padding-top: 10px; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+
+  /* ---------- shared type ---------- */
+  .label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; letter-spacing: 2px; color: var(--ink); margin-bottom: 12px;
+  }
+  .label .num {
+    width: 15px; height: 15px; border: 1px solid var(--ink); border-radius: 50%;
+    display: grid; place-items: center; font-family: var(--mono); font-size: 8px;
+    letter-spacing: 0;
+  }
+  .label .en { font-family: var(--mono); font-size: 8px; letter-spacing: 1.4px; color: var(--faint); margin-left: 2px; }
+  .hair { border: 0; border-top: 1px solid var(--rule); margin: 22px 0; }
+
+  /* ---------- left column ---------- */
+  .prompt {
+    border: 1px solid var(--ink); background:
+      repeating-linear-gradient(180deg, transparent 0 31px, var(--rule-soft) 31px 32px),
+      var(--paper-2);
+    padding: 6px 13px 0; height: 104px;
+    font-size: 14.5px; line-height: 32px; color: var(--ink-2);
+    position: relative;
+  }
+  .prompt::before {
+    content: ""; position: absolute; left: -1px; top: -1px; width: 9px; height: 9px;
+    border-left: 2px solid var(--verm); border-top: 2px solid var(--verm);
+  }
+  .prompt::after {
+    content: ""; position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px;
+    border-right: 2px solid var(--verm); border-bottom: 2px solid var(--verm);
+  }
+  .caret { display: inline-block; width: 1px; height: 15px; background: var(--verm); vertical-align: -3px; margin-left: 1px; }
+
+  .generate {
+    margin-top: 12px; width: 100%; height: 42px; border: 1px solid var(--ink);
+    background: var(--ink); color: var(--paper); font-family: var(--serif);
+    font-size: 14px; letter-spacing: 3px; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 14px;
+  }
+  .generate .k { font-family: var(--mono); font-size: 9px; letter-spacing: 1px; color: #B9AE9B; }
+  .try { margin-top: 11px; font-size: 11px; color: var(--faint); line-height: 2; }
+  .try b { font-weight: 400; color: var(--muted); margin-right: 6px; }
+  .try a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); margin-right: 10px; padding-bottom: 1px; }
+
+  .spec { font-size: 12px; color: var(--muted); }
+  .spec-row { display: flex; align-items: baseline; gap: 6px; padding: 7px 0; }
+  .spec-row > span:first-child { white-space: nowrap; letter-spacing: .5px; }
+  .spec-row .dots { flex: 1; border-bottom: 1px dotted #C9BDA7; transform: translateY(-2px); }
+  .spec-row .v { font-family: var(--mono); font-size: 11.5px; color: var(--ink); letter-spacing: .3px; }
+  .spec-row .v em { font-style: normal; color: var(--faint); margin-left: 7px; font-size: 9px; }
+
+  .export-list { display: flex; flex-direction: column; }
+  .export-list a {
+    display: flex; align-items: baseline; justify-content: space-between;
+    text-decoration: none; color: var(--ink-2); font-size: 12px;
+    padding: 6px 0; border-bottom: 1px solid var(--rule-soft);
+  }
+  .export-list a span { font-family: var(--mono); font-size: 9px; color: var(--verm); }
+
+  .recent { margin-top: 4px; }
+  .recent .item { display: flex; align-items: baseline; gap: 9px; padding: 5px 0; font-size: 11px; color: var(--muted); }
+  .recent .item b { font-family: var(--mono); font-weight: 400; font-size: 8.5px; color: var(--faint); }
+  .recent .item .t { margin-left: auto; font-family: var(--mono); font-size: 8.5px; color: var(--faint); }
+  .recent .item.on { color: var(--ink); }
+  .recent .item.on .t { color: var(--verm); }
+
+  /* ---------- center ---------- */
+  .kicker {
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: 2.6px; color: var(--verm);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .kicker::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+  h1 {
+    font-family: var(--serif); font-weight: 600; font-size: 62px; line-height: 1.06;
+    letter-spacing: 4px; margin: 14px 0 0; display: flex; align-items: flex-end; gap: 16px;
+  }
+  h1 small {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1.6px;
+    color: var(--faint); padding-bottom: 12px;
+  }
+  .dek { margin-top: 12px; font-size: 13.5px; line-height: 1.9; color: var(--muted); max-width: 560px; }
+  .dek b { color: var(--verm); font-weight: 600; }
+
+  .plate {
+    margin-top: 24px; border: 1.5px solid var(--ink); background: var(--paper-2);
+    position: relative; height: 492px; padding: 22px 26px 18px;
+  }
+  .plate::before {
+    content: ""; position: absolute; inset: 6px; border: 1px solid var(--rule); pointer-events: none;
+  }
+  .plate-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: 1.6px; color: var(--faint);
+    position: relative; z-index: 2;
+  }
+  .plate-meta b { font-weight: 400; color: var(--ink); }
+  .canvas {
+    position: absolute; left: 26px; right: 26px; top: 40px; bottom: 12px;
+    background-image:
+      linear-gradient(rgba(23,34,44,.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(23,34,44,.055) 1px, transparent 1px);
+    background-size: 38px 38px;
+    background-position: 0 8px;
+  }
+  .plot { position: absolute; top: 0; bottom: 0; left: 50%; width: 736px; margin-left: -368px; }
+  .ranges { position: absolute; top: 0; left: 0; width: 736px; height: 26px; }
+  .rng {
+    position: absolute; top: 0; border-top: 1px solid var(--ink);
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: 1px; color: var(--ink);
+    padding: 7px 0 0 5px;
+  }
+  .rng::before, .rng::after { content: ""; position: absolute; top: 0; width: 1px; height: 6px; background: var(--ink); }
+  .rng::before { left: 0; } .rng::after { right: 0; }
+  .rng.l { color: var(--teal); border-color: var(--teal); }
+  .rng.l::before, .rng.l::after { background: var(--teal); }
+  .ref {
+    display: inline-grid; place-items: center; width: 13px; height: 13px;
+    border: 1px solid var(--verm); border-radius: 50%; color: var(--verm);
+    font-family: var(--mono); font-size: 7px; font-style: normal; letter-spacing: 0;
+    margin-left: 5px; vertical-align: 1px;
+  }
+  .rng.r { color: var(--verm); border-color: var(--verm); }
+  .rng.r::before, .rng.r::after { background: var(--verm); }
+
+  .bars { position: absolute; left: 0; width: 736px; bottom: 34px; height: 318px; display: flex; align-items: flex-end; gap: 24px; }
+  .cell { width: 52px; display: flex; flex-direction: column; align-items: center; gap: 7px; position: relative; }
+  .bar {
+    width: 52px; background: var(--ink); position: relative;
+    border: 1px solid var(--ink);
+  }
+  .bar .v {
+    position: absolute; top: -21px; left: 0; width: 100%; text-align: center;
+    font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .5px;
+  }
+  .bar.pivot { background: var(--verm); border-color: var(--verm); }
+  .bar.pivot .v { color: var(--verm); font-weight: 700; }
+  .bar.cmp {
+    background: repeating-linear-gradient(45deg, rgba(23,34,44,.9) 0 2px, transparent 2px 7px), var(--paper-2);
+    border-color: var(--ink);
+  }
+  .bar.cmp .v { color: var(--ink); }
+  .bar.mv {
+    background: var(--paper-2); border: 1.5px dashed var(--verm);
+    box-shadow: 5px 5px 0 rgba(23,34,44,.07);
+  }
+  .bar.mv .v { color: var(--verm); top: 8px; }
+  .idx { font-family: var(--mono); font-size: 8.5px; color: var(--faint); letter-spacing: .5px; }
+  .ptr {
+    font-family: var(--mono); font-size: 8px; color: var(--paper); background: var(--ink);
+    padding: 1px 5px; letter-spacing: .5px;
+  }
+  .ptr.p { background: var(--verm); }
+  .ptr.hide { visibility: hidden; }
+
+  .anno {
+    position: absolute; width: 17px; height: 17px; border: 1px solid var(--verm); border-radius: 50%;
+    background: var(--paper-2); color: var(--verm); font-family: var(--mono); font-size: 8px;
+    display: grid; place-items: center; z-index: 4;
+  }
+  .anno::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1px; height: 10px; background: var(--verm); }
+  .anno.up::after { top: auto; bottom: 100%; }
+  .anno.tag { top: -30px; left: 50%; margin-left: -8.5px; }
+  .anno.noline::after { display: none; }
+
+  .arc { position: absolute; left: 0; top: 0; width: 736px; height: 100%; z-index: 3; pointer-events: none; }
+  .legend {
+    position: absolute; left: 0; bottom: 0; display: flex; align-items: center; gap: 16px;
+    font-family: var(--mono); font-size: 7.5px; letter-spacing: .8px; color: var(--faint);
+  }
+  .legend i { display: inline-block; width: 8px; height: 8px; margin-right: 4px; vertical-align: -1px; }
+  .legend .s1 { background: var(--ink); }
+  .legend .s2 { border: 1px dashed var(--faint); }
+  .legend .s3 { background: repeating-linear-gradient(45deg, var(--ink) 0 1.5px, transparent 1.5px 4px); border: 1px solid var(--ink); }
+
+  .plate-caption {
+    margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule);
+    font-size: 11.5px; color: var(--muted); letter-spacing: .3px; line-height: 1.8;
+  }
+  .plate-caption b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- right ---------- */
+  .notes { list-style: none; }
+  .notes li { display: flex; gap: 9px; padding: 0 0 13px; }
+  .notes .n {
+    flex: 0 0 16px; width: 16px; height: 16px; border: 1px solid var(--ink); border-radius: 50%;
+    font-family: var(--mono); font-size: 7.5px; display: grid; place-items: center; margin-top: 2px;
+  }
+  .notes b { font-size: 11.5px; font-weight: 600; letter-spacing: .5px; display: block; margin-bottom: 3px; }
+  .notes p { font-size: 11px; line-height: 1.75; color: var(--muted); }
+
+  .formula {
+    margin: 16px 0 4px; padding: 12px 0; text-align: center;
+    border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink);
+    font-family: "Cambria Math", "Georgia", serif; font-size: 15.5px; font-style: italic; color: var(--ink);
+  }
+  .formula sub { font-size: 9px; font-style: normal; }
+
+  pre.code {
+    font-family: var(--mono); font-size: 9px; line-height: 1.85; color: var(--ink-2);
+    border-left: 2px solid var(--verm); padding: 2px 0 2px 10px; margin-top: 2px;
+    white-space: pre;
+  }
+  pre.code .ln { color: var(--faint); display: inline-block; width: 12px; }
+  pre.code .cur { background: rgba(192,69,44,.08); display: block; margin-left: -10px; padding-left: 10px; }
+  .kw { color: var(--verm); }
+
+  .tabs span {
+    writing-mode: vertical-rl; text-orientation: mixed;
+    font-family: var(--serif); font-size: 10.5px; letter-spacing: 3px; color: var(--faint);
+    padding: 6px 2px; position: relative;
+  }
+  .tabs span.on { color: var(--ink); }
+  .tabs span.on::before {
+    content: ""; position: absolute; right: -7px; top: 6px; width: 2px; height: 22px; background: var(--verm);
+  }
+
+  /* ---------- motion ---------- */
+  .b {
+    position: absolute; bottom: 34px; width: 52px; border: 1px solid var(--ink);
+    background: var(--ink); z-index: 2;
+  }
+  .b .v {
+    position: absolute; top: -21px; left: 0; width: 100%; text-align: center;
+    font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .5px;
+  }
+  .b.pivot { background: var(--verm); border-color: var(--verm); z-index: 4; }
+  .b.pivot .v { color: var(--verm); font-weight: 700; }
+  .b.cmp { background: repeating-linear-gradient(45deg, rgba(23,34,44,.9) 0 2px, transparent 2px 7px), var(--paper-2); }
+  .b.cmp .v { color: var(--ink); }
+  .b.dash { background: var(--paper-2); border: 1.5px dashed var(--verm); box-shadow: 5px 5px 0 rgba(23,34,44,.07); z-index: 6; }
+  .b.dash .v { color: var(--verm); top: 8px; }
+  .ghost {
+    position: absolute; bottom: 34px; width: 52px; border: 1px dashed rgba(192,69,44,.5);
+    z-index: 1; opacity: 0;
+  }
+  .axis { position: absolute; left: 0; right: 0; bottom: 0; height: 34px; }
+  .ix {
+    position: absolute; top: 0; width: 52px; text-align: center;
+    font-family: var(--mono); font-size: 8.5px; color: var(--faint); letter-spacing: .5px;
+  }
+  .ptr2 { position: absolute; top: 13px; width: 52px; text-align: center; }
+  .ptr2 > span {
+    font-family: var(--mono); font-size: 8px; color: var(--paper);
+    background: var(--ink); padding: 1px 5px; letter-spacing: .5px;
+  }
+  .ptr2.p > span { background: var(--verm); }
+  .ring {
+    position: absolute; width: 78px; height: 78px; border: 1.5px solid var(--verm);
+    border-radius: 50%; opacity: 0; z-index: 5;
+  }
+  .sweep {
+    position: absolute; left: 0; bottom: -3px; width: 52px; height: 2px; background: var(--verm);
+    transform-origin: left center; transform: scaleX(0);
+  }
+  #curtain {
+    position: absolute; inset: 0; background: var(--paper); z-index: 30; opacity: 1; pointer-events: none;
+  }
+
+  /* ---------- film strip ---------- */
+  .film {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 104px;
+    background: #12161A; color: #EFE8D9; display: flex; align-items: center; gap: 28px;
+    padding: 0 48px; z-index: 5;
+  }
+  .film::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: #2C333B; }
+  .film-label { font-family: var(--mono); font-size: 8px; letter-spacing: 2px; color: #7C838C; margin-bottom: 8px; }
+  .film-left { width: 268px; flex: 0 0 268px; }
+  .film-controls { display: flex; align-items: center; gap: 12px; }
+  .play {
+    width: 27px; height: 27px; border: 1px solid #4A525C; border-radius: 50%;
+    display: grid; place-items: center; color: #EFE8D9; font-size: 8px;
+  }
+  .frame-num { font-family: var(--mono); font-size: 11px; letter-spacing: 1px; color: #EFE8D9; }
+  .frame-num em { font-style: normal; color: #7C838C; }
+  .speed { font-family: var(--mono); font-size: 9px; color: #9AA1AA; border: 1px solid #333B44; padding: 2px 6px; }
+
+  .frames { display: flex; gap: 6px; align-items: center; flex: 1; overflow: hidden; }
+  .frame {
+    width: 46px; height: 50px; flex: 0 0 46px; border: 1px solid #2E363F;
+    display: flex; align-items: flex-end; justify-content: center; gap: 3px;
+    padding: 7px 6px; background: #171C22;
+  }
+  .frame i { display: block; width: 4px; background: #5F6873; }
+  .frame.on { border-color: var(--verm); background: #1E1714; transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,.45); }
+  .frame.on i { background: var(--verm); }
+  .film-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; font-family: var(--mono); font-size: 8px; letter-spacing: 1.4px; color: #7C838C; }
+  .film-right a { color: #EFE8D9; text-decoration: none; border-bottom: 1px solid #4A525C; padding-bottom: 2px; }
+  .film-right a span { color: #E07A5F; }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="crop tl"></div><div class="crop tr"></div>
+
+<header class="masthead">
+  <div class="brand">
+    <div class="mark">
+      <svg width="13" height="13" viewBox="0 0 13 13">
+        <rect x="1.5" y="6.5" width="2.4" height="5" fill="#17222C"/>
+        <rect x="5.3" y="3.2" width="2.4" height="8.3" fill="#17222C"/>
+        <rect x="9.1" y="5" width="2.4" height="6.5" fill="#C0452C"/>
+      </svg>
+    </div>
+    <div class="wordmark">ALGOVIZ</div>
+    <div class="cn">算法视界 · 交互工坊</div>
+  </div>
+  <div class="mast-meta">VOL. 01 <i>—</i> 2026 <i>—</i> SORTING / 排序</div>
+  <div class="mast-right">
+    <span class="live"><span class="pt"></span>LIVE <em>本地引擎 0 ms</em></span>
+    <a href="#">导出 <span>↗</span></a>
+    <a href="#">GitHub <span>↗</span></a>
+  </div>
+</header>
+<div class="rule-a"></div>
+<div class="rule-b"></div>
+
+<main class="folio">
+
+  <aside class="col-left">
+    <div class="label"><span class="num">1</span> 描述你的意图 <span class="en">PROMPT</span></div>
+    <div class="prompt">用 10 个元素演示快速排序，突出指针移动和交换过程<span class="caret"></span></div>
+    <button class="generate">生成动画 <span class="k">⌘ ↵</span></button>
+    <div class="try"><b>试试</b><a>冒泡排序</a><a>二叉树层序</a><a>TCP 握手</a><a>Dijkstra</a></div>
+
+    <hr class="hair" />
+
+    <div class="label"><span class="num">2</span> 参数 <span class="en">SPEC</span></div>
+    <div class="spec">
+      <div class="spec-row"><span>数组规模</span><i class="dots"></i><span class="v">10 <em>− +</em></span></div>
+      <div class="spec-row"><span>算法</span><i class="dots"></i><span class="v">快速排序</span></div>
+      <div class="spec-row"><span>基准策略</span><i class="dots"></i><span class="v">末元素</span></div>
+      <div class="spec-row"><span>转场时长</span><i class="dots"></i><span class="v">320 ms</span></div>
+      <div class="spec-row"><span>播放速度</span><i class="dots"></i><span class="v">1.0 ×</span></div>
+    </div>
+
+    <hr class="hair" />
+
+    <div class="label"><span class="num">3</span> 导出 <span class="en">EXPORT</span></div>
+    <div class="export-list">
+      <a href="#">GIF 动图 · 38 帧 <span>↗</span></a>
+      <a href="#">讲稿 Markdown <span>↗</span></a>
+      <a href="#">教学卡片 2× <span>↗</span></a>
+    </div>
+
+    <hr class="hair" />
+
+    <div class="label">最近 <span class="en">RECENT</span></div>
+    <div class="recent">
+      <div class="item on"><b>01</b> 快速排序 · 分区 <span class="t">刚刚</span></div>
+      <div class="item"><b>02</b> TCP 三次握手 <span class="t">12 分钟</span></div>
+      <div class="item"><b>03</b> 二叉树层序遍历 <span class="t">昨天</span></div>
+    </div>
+  </aside>
+
+  <section class="col-center">
+    <div class="kicker">SORTING / PARTITION</div>
+    <h1>分区 <small>NO. 014</small></h1>
+    <p class="dek">以末元素 <b>7</b> 为基准，把 10 个元素分成两半——左边都不大于它，右边都大于它；之后两侧各自递归。</p>
+
+    <div class="plate">
+      <div class="plate-meta"><span><b>FIG. 1</b> — PARTITION</span><span>PLATE 014 · 1:1 · 320 MS</span></div>
+      <div class="canvas">
+        <div class="plot">
+        <div class="ranges">
+          <div class="rng l" style="left:0; width:432px;">≤ 7 · 左区 <i class="ref">3</i></div>
+          <div class="rng r" style="left:532px; width:204px;">&gt; 7 · 右区</div>
+        </div>
+
+        <div class="ghost" id="g7" style="left:532px;height:200px"></div>
+        <div class="ghost" id="g4" style="left:456px;height:120px"></div>
+
+        <div class="b" style="left:0;height:150px"><span class="v">5</span></div>
+        <div class="b" style="left:76px;height:100px"><span class="v">3</span></div>
+        <div class="b" style="left:152px;height:230px"><span class="v">8</span></div>
+        <div class="b cmp" style="left:228px;height:60px"><span class="v">1</span><span class="sweep" id="sweep"></span></div>
+        <div class="b" style="left:304px;height:260px"><span class="v">9</span></div>
+        <div class="b" style="left:380px;height:80px"><span class="v">2</span><span class="anno tag">2</span></div>
+        <div class="b dash" style="left:456px;height:120px" id="b4"><span class="v">4</span></div>
+        <div class="b pivot" style="left:532px;height:200px" id="b7"><span class="v">7</span><span class="anno tag">1</span></div>
+        <div class="b" style="left:608px;height:170px"><span class="v">6</span></div>
+        <div class="b" style="left:684px;height:290px"><span class="v">10</span></div>
+
+        <div class="axis">
+          <span class="ix" style="left:0">0</span><span class="ix" style="left:76px">1</span><span class="ix" style="left:152px">2</span><span class="ix" style="left:228px">3</span><span class="ix" style="left:304px">4</span><span class="ix" style="left:380px">5</span><span class="ix" style="left:456px">6</span><span class="ix" style="left:532px">7</span><span class="ix" style="left:608px">8</span><span class="ix" style="left:684px">9</span>
+          <span class="ptr2" style="left:228px"><span>cmp</span></span>
+          <span class="ptr2" style="left:380px"><span>i</span></span>
+          <span class="ptr2 p" id="pivptr" style="left:532px"><span>pivot</span></span>
+        </div>
+
+        <div class="ring" id="ring" style="left:519px; top:164px;"></div>
+
+        <svg class="arc" id="arc" viewBox="0 0 736 437" preserveAspectRatio="none">
+          <path id="arcpath" d="M 508 210 Q 560 200 572 274" fill="none" stroke="#C0452C" stroke-width="1.2" stroke-dasharray="3 4"/>
+          <circle cx="524" cy="206" r="1.6" fill="#C0452C" opacity=".55"/>
+          <circle cx="540" cy="208" r="1.6" fill="#C0452C" opacity=".75"/>
+          <circle cx="551" cy="230" r="1.6" fill="#C0452C" opacity=".4"/>
+        </svg>
+        </div>
+
+        <div class="legend">
+          <span><i class="s1"></i>当前</span>
+          <span><i class="s2"></i>上一帧</span>
+          <span><i class="s3"></i>比较中</span>
+          <span style="margin-left:auto;">SWAP 320 MS · EASE-OUT</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="plate-caption" id="cap"><b>图 1</b> · 第 14 帧：7 与 4 交换，基准归位；左区 6 个元素均 ≤ 7，右区 3 个元素均 &gt; 7。</div>
+  </section>
+
+  <aside class="col-right">
+    <div class="label">注 <span class="en">NOTES</span></div>
+    <ol class="notes">
+      <li><span class="n">1</span><div><b>基准（pivot）</b><p>取末元素 7。分区结束后它落在最终位置，左边都 ≤ 7，右边都 &gt; 7。</p></div></li>
+      <li><span class="n">2</span><div><b>指针 i</b><p>已扫描区里最后一个 ≤ 基准的位置；下一个比 7 小的元素会与 i+1 交换。</p></div></li>
+      <li><span class="n">3</span><div><b>区间划分</b><p>左区 [0..5] 与右区 [7..9] 递归处理；单元素或空区间直接返回。</p></div></li>
+    </ol>
+
+    <div class="label" style="margin-top:18px;">复杂度 <span class="en">COMPLEXITY</span></div>
+    <div class="spec">
+      <div class="spec-row"><span>时间</span><i class="dots"></i><span class="v">O(n log n)</span></div>
+      <div class="spec-row"><span>空间</span><i class="dots"></i><span class="v">O(log n)</span></div>
+      <div class="spec-row"><span>稳定性</span><i class="dots"></i><span class="v">否</span></div>
+    </div>
+    <div class="formula">T(n) = 2T(n/2) + O(n)</div>
+
+    <div class="label" style="margin-top:16px;">伪代码 <span class="en">CODE</span></div>
+    <pre class="code"><span class="ln">1</span><span class="kw">function</span> quickSort(a, l, r):
+<span class="ln">2</span>  <span class="kw">if</span> l &gt;= r <span class="kw">return</span>
+<span class="ln">3</span>  p = partition(a, l, r)
+<span class="ln">4</span><span class="cur">  <span class="ln"> </span>swap(a[p], a[r])   <span style="color:#9C917F">// 基准归位</span></span>
+<span class="ln">5</span>  quickSort(a, l, p - 1)
+<span class="ln">6</span>  quickSort(a, p + 1, r)</pre>
+
+    <div class="label" style="margin-top:18px;">链路 <span class="en">TRACE</span></div>
+    <div class="spec">
+      <div class="spec-row"><span>路由</span><i class="dots"></i><span class="v">sort.quick</span></div>
+      <div class="spec-row"><span>校验</span><i class="dots"></i><span class="v">0 err</span></div>
+      <div class="spec-row"><span>帧数</span><i class="dots"></i><span class="v">38</span></div>
+      <div class="spec-row"><span>耗时</span><i class="dots"></i><span class="v">5 ms</span></div>
+    </div>
+  </aside>
+
+  <nav class="tabs">
+    <span class="on">原理</span>
+    <span>复杂度</span>
+    <span>代码</span>
+    <span>校验</span>
+  </nav>
+
+</main>
+
+<section class="film">
+  <div class="film-left">
+    <div class="film-label">TIMELINE / 时间轴</div>
+    <div class="film-controls">
+      <span class="play">▶</span>
+      <span class="frame-num" id="fnum">014 <em>/ 038</em></span>
+      <span class="speed">1.0 ×</span>
+    </div>
+  </div>
+  <div class="frames" id="frames"></div>
+  <div class="film-right">
+    <span>38 FRAMES · 8.2 S</span>
+    <a href="#">导出 GIF <span>↗</span></a>
+  </div>
+</section>
+
+<div id="curtain"></div>
+
+<script>
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var t = parseFloat(q.get('t') || '0');
+    var $ = function (s) { return document.querySelector(s); };
+    var clamp = function (x) { return Math.min(1, Math.max(0, x)); };
+    var seg = function (a, b) { return clamp((t - a) / (b - a)); };
+    var ease = function (x) { return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+
+    var host = document.getElementById('frames');
+    var n = 20, seed = [5, 3, 8, 1, 9, 2, 7, 4, 6, 10];
+    for (var i = 0; i < n; i++) {
+      var f = document.createElement('div');
+      f.className = 'frame';
+      var base = (i * 7 + 3) % 10;
+      for (var k = 0; k < 5; k++) {
+        var b = document.createElement('i');
+        var h = 10 + ((seed[(base + k) % 10] * 3 + (i % 4) * 4) % 26);
+        b.style.height = h + 'px';
+        f.appendChild(b);
+      }
+      host.appendChild(f);
+    }
+    var frames = host.children;
+
+    /* intro */
+    var pIn = ease(seg(0.02, 0.28));
+    $('.masthead').style.opacity = pIn;
+    $('.masthead').style.transform = 'translateY(' + (1 - pIn) * 6 + 'px)';
+    $('.rule-a').style.transform = 'scaleX(' + ease(seg(0.05, 0.3)) + ')';
+    $('.rule-b').style.transform = 'scaleX(' + ease(seg(0.07, 0.33)) + ')';
+    ['.col-left', '.col-center', '.col-right', '.tabs'].forEach(function (sel, k) {
+      var p = ease(seg(0.06 + k * 0.02, 0.3 + k * 0.02));
+      var el = $(sel);
+      el.style.opacity = p;
+      el.style.transform = 'translateY(' + (1 - p) * 10 + 'px)';
+    });
+    $('.film').style.opacity = ease(seg(0.1, 0.35));
+
+    /* swap */
+    var s = ease(seg(1.0, 1.8));
+    var b7 = document.getElementById('b7'), b4 = document.getElementById('b4');
+    var lift7 = -8 * Math.sin(Math.PI * s);
+    var lift4 = -34 * Math.sin(Math.PI * s);
+    b7.style.left = (532 - 76 * s) + 'px';
+    b4.style.left = (456 + 76 * s) + 'px';
+    b7.style.transform = 'translateY(' + lift7 + 'px)';
+    b4.style.transform = 'translateY(' + lift4 + 'px)';
+    document.getElementById('g7').style.opacity = 0.3 * Math.sin(Math.PI * s);
+    document.getElementById('g4').style.opacity = 0.3 * Math.sin(Math.PI * s);
+    document.getElementById('pivptr').style.left = (532 - 76 * s) + 'px';
+
+    /* arc */
+    document.getElementById('arc').style.opacity = Math.sin(Math.PI * s) * 0.9;
+
+    /* pivot stamp */
+    var u = seg(1.8, 2.2);
+    var ring = document.getElementById('ring');
+    ring.style.transform = 'scale(' + (0.86 + 0.22 * Math.sin(Math.PI * u)) + ')';
+    ring.style.opacity = Math.sin(Math.PI * u) * 0.9;
+
+    /* compare sweep */
+    document.getElementById('sweep').style.transform = 'scaleX(' + ease(seg(2.2, 2.8)) + ')';
+
+    /* timeline */
+    var steps = (t >= 1.8 ? 1 : 0) + (t >= 2.8 ? 1 : 0);
+    var frameNo = 14 + steps;
+    var idx = frameNo - 1;
+    for (var j = 0; j < frames.length; j++) {
+      frames[j].className = 'frame' + (j === idx ? ' on' : '');
+    }
+    document.getElementById('fnum').innerHTML = String(frameNo).padStart(3, '0') + ' <em>/ 038</em>';
+
+    /* caption */
+    var cap = document.getElementById('cap');
+    if (t < 1.8) {
+      cap.innerHTML = '<b>图 1</b> · 第 14 帧：准备交换 7 与 4，基准尚未归位。';
+    } else if (t < 2.8) {
+      cap.innerHTML = '<b>图 1</b> · 第 15 帧：7 与 4 交换，基准归位；左区 6 个元素均 ≤ 7。';
+    } else {
+      cap.innerHTML = '<b>图 1</b> · 第 16 帧：比较 1 与 7，i 指针停在 5。';
+    }
+
+    /* live dot */
+    $('.live .pt').style.opacity = 0.55 + 0.45 * Math.sin(t * 5);
+
+    /* curtain */
+    var c = 0;
+    if (t < 0.4) c = 1 - ease(t / 0.4);
+    else if (t > 4.0) c = ease((t - 4.0) / 0.5);
+    document.getElementById('curtain').style.opacity = c;
+  })();
+</script>
+</body>
+</html>

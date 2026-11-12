@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Concept B · Spread</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --paper: #F6F3EA;
+    --paper-2: #FBF8F1;
+    --ink: #151515;
+    --blue: #1B4DFF;
+    --orange: #E4572E;
+    --muted: #6D6658;
+    --faint: #9B9382;
+    --rule: #D8D0BF;
+    --serif: "Noto Serif SC", "STZhongsong", "SimSun", serif;
+    --sans: "DengXian", "Microsoft YaHei", sans-serif;
+    --mono: "Cascadia Mono", Consolas, monospace;
+  }
+  html, body { width: 1600px; height: 1000px; overflow: hidden; }
+  body { position: relative; background: var(--paper); color: var(--ink); font-family: var(--serif); }
+
+  .mast {
+    position: absolute; top: 28px; left: 56px; right: 56px; height: 42px;
+    display: flex; align-items: center; border-bottom: 1px solid var(--ink);
+    font-family: var(--sans); font-size: 10px; letter-spacing: 2px;
+  }
+  .mast .brand { font-family: "Bodoni MT", Georgia, serif; font-size: 17px; letter-spacing: 3px; }
+  .mast .mid { margin: 0 auto; color: var(--muted); }
+  .mast .mid b { color: var(--ink); font-weight: 500; }
+  .mast .pg { color: var(--muted); }
+
+  .spine {
+    position: absolute; left: 800px; top: 74px; bottom: 66px; width: 1px;
+    background: var(--rule); z-index: 3;
+  }
+  .spine::after {
+    content: ""; position: absolute; left: -26px; top: 0; bottom: 0; width: 53px;
+    background: linear-gradient(90deg, rgba(0,0,0,0), rgba(0,0,0,.05) 46%, rgba(0,0,0,.09) 50%, rgba(0,0,0,.05) 54%, rgba(0,0,0,0));
+  }
+
+  /* left page */
+  .left { position: absolute; left: 56px; top: 96px; width: 680px; }
+  .chapter { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--blue); }
+  h1 {
+    font-size: 86px; font-weight: 600; letter-spacing: 3px; line-height: 1.05;
+    margin-top: 12px;
+  }
+  .dek { margin-top: 16px; font-size: 15px; line-height: 1.9; color: var(--muted); }
+  .dek b { color: var(--orange); font-weight: 600; }
+  .body { margin-top: 22px; font-size: 12.5px; line-height: 2; color: #3C382F; column-count: 2; column-gap: 30px; }
+  .body p { margin-bottom: 10px; }
+  .body p:first-child::first-letter { font-size: 34px; float: left; line-height: .9; padding: 2px 6px 0 0; color: var(--blue); }
+
+  .formula {
+    margin-top: 18px; padding: 12px 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink);
+    font-family: "Cambria Math", Georgia, serif; font-style: italic; font-size: 18px; color: var(--blue);
+    text-align: center;
+  }
+  .formula span { font-style: normal; font-family: var(--mono); font-size: 8px; letter-spacing: 1px; color: var(--faint); display: block; margin-top: 6px; }
+
+  pre.code {
+    margin-top: 16px; font-family: var(--mono); font-size: 10px; line-height: 2; color: #2A2A2A;
+    border-left: 2px solid var(--blue); padding-left: 12px;
+  }
+  pre.code .line { display: block; }
+  pre.code .ln { color: var(--faint); display: inline-block; width: 16px; }
+  pre.code .kw { color: var(--blue); }
+  pre.code .hi { background: rgba(228,87,46,.1); margin-left: -12px; padding-left: 12px; }
+
+  .facts {
+    display: flex; gap: 30px; margin-top: 18px; padding-top: 10px;
+    border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 8.5px;
+    letter-spacing: 1px; color: var(--faint);
+  }
+  .facts b { color: var(--ink); font-weight: 400; margin-left: 6px; }
+  .margin-note {
+    margin-top: 26px; padding: 12px 0 0 14px; border-left: 2px solid var(--blue);
+    font-size: 11px; line-height: 1.9; color: var(--muted); max-width: 420px;
+  }
+  .margin-note b { color: var(--ink); font-weight: 600; }
+
+  .ask {
+    position: absolute; left: 56px; right: 860px; bottom: 96px; height: 44px;
+    display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--ink);
+  }
+  .ask .q { flex: 1; font-size: 13px; color: var(--muted); letter-spacing: .5px; }
+  .ask .q b { color: var(--ink); font-weight: 500; }
+  .ask .go {
+    width: 30px; height: 30px; border-radius: 50%; background: var(--blue); color: #fff;
+    display: grid; place-items: center; font-family: var(--sans); font-size: 12px;
+  }
+  .pgl { position: absolute; left: 56px; bottom: 40px; font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--faint); }
+
+  /* right page */
+  .right { position: absolute; left: 860px; top: 96px; width: 684px; }
+  .fig-head { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--mono); font-size: 9px; letter-spacing: 1.6px; color: var(--muted); }
+  .fig-head b { color: var(--ink); font-weight: 500; }
+  .fig-head .orange { color: var(--orange); }
+
+  .figure {
+    position: relative; margin-top: 14px; height: 560px; border: 1px solid var(--ink);
+    background-color: var(--paper-2);
+    background-image:
+      linear-gradient(rgba(27,77,255,.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(27,77,255,.07) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .bars { position: absolute; left: 24px; right: 24px; bottom: 52px; height: 390px; display: flex; align-items: flex-end; justify-content: center; gap: 18px; }
+  .cell { width: 46px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .bar { width: 46px; background: var(--ink); position: relative; }
+  .bar .v { position: absolute; top: -19px; width: 100%; text-align: center; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .bar.pivot { background: var(--orange); }
+  .bar.pivot .v { color: var(--orange); font-weight: 700; }
+  .bar.cmp { background: repeating-linear-gradient(45deg, var(--blue) 0 2px, transparent 2px 6px); }
+  .bar.cmp .v { color: var(--blue); }
+  .bar.mv { background: transparent; border: 1.5px dashed var(--orange); }
+  .bar.mv .v { color: var(--orange); }
+  .idx { font-family: var(--mono); font-size: 8px; color: var(--faint); }
+  .rng { position: absolute; top: 26px; font-family: var(--mono); font-size: 8px; letter-spacing: 1px; color: var(--blue); border-top: 1px solid var(--blue); padding-top: 4px; }
+  .rng.r { color: var(--orange); border-color: var(--orange); }
+
+  .caption { margin-top: 12px; font-size: 11.5px; color: var(--muted); line-height: 1.8; }
+  .caption b { color: var(--ink); font-weight: 600; }
+  .fignote { margin-top: 14px; font-size: 10px; line-height: 1.8; color: var(--faint); border-left: 1px solid var(--rule); padding-left: 10px; }
+
+  .ruler { position: relative; margin-top: 14px; height: 26px; border-bottom: 1px solid var(--ink); background-image: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 17.4px); }
+  .ruler .cur { position: absolute; left: 37%; top: -1px; width: 18px; height: 27px; background: var(--orange); transform: translateX(-3px); }
+  .ruler .cur::after { content: "14"; position: absolute; left: 5px; top: 6px; color: #fff; font-family: var(--mono); font-size: 8px; }
+
+  .transport { margin-top: 10px; display: flex; align-items: center; gap: 14px; font-family: var(--mono); font-size: 9px; letter-spacing: 1.4px; color: var(--muted); }
+  .transport .pl { width: 24px; height: 24px; border: 1px solid var(--ink); border-radius: 50%; display: grid; place-items: center; font-size: 7px; color: var(--ink); }
+  .transport b { color: var(--ink); font-weight: 400; }
+  .pgr { position: absolute; right: 56px; bottom: 40px; font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--faint); }
+</style>
+</head>
+<body>
+
+<div class="mast">
+  <div class="brand">ALGOVIZ</div>
+  <div class="mid">第三讲 · <b>排序与选择</b></div>
+  <div class="pg">12 — 13</div>
+</div>
+<div class="spine"></div>
+
+<section class="left">
+  <div class="chapter">CH.03 / SORTING — QUICKSORT</div>
+  <h1>分区</h1>
+  <div class="dek">把小于基准的放左边，大于的放右边，再对两侧递归。<b>整个快速排序，本质上就是这一件事。</b></div>
+
+  <div class="body">
+    <p>分区结束后，基准 7 落在下标 6 的最终位置。左区 [5,3,1,2,4,6] 的每个元素都不大于它，右区 [8,9,10] 的每个元素都大于它。</p>
+    <p>接下来只需要对左区和右区分别做同样的操作。当区间长度缩小到 1 或 0 时，递归自然结束，整个数组也就有序了。</p>
+    <p>这就是分治：一次划分把问题切成两个更小的同类问题，而基准本身再也不需要移动。</p>
+  </div>
+
+  <div class="formula">
+    T(n) = 2T(n/2) + O(n)
+    <span>平均 O(n log n) · 最坏 O(n²) · 空间 O(log n)</span>
+  </div>
+
+  <pre class="code"><span class="line"><span class="ln">1</span><span class="kw">function</span> quickSort(a, l, r):</span><span class="line"><span class="ln">2</span>  <span class="kw">if</span> l &gt;= r <span class="kw">return</span></span><span class="line"><span class="ln">3</span>  p = partition(a, l, r)</span><span class="line hi"><span class="ln">4</span>  swap(a[p], a[r])   // 基准归位</span><span class="line"><span class="ln">5</span>  quickSort(a, l, p - 1)</span><span class="line"><span class="ln">6</span>  quickSort(a, p + 1, r)</span></pre>
+
+  <div class="facts">
+    <div>稳定性<b>否</b></div>
+    <div>原地排序<b>是</b></div>
+    <div>最坏情况<b>O(n²)</b></div>
+  </div>
+
+  <div class="margin-note">
+    <b>为什么取末元素？</b>随机数据下平均性能最好；但面对有序数组会退化成 O(n²)，所以工程里常用随机基准或三数取中。
+  </div>
+</section>
+
+<div class="ask">
+  <div class="q"><b>追问一句：</b>为什么不选第一个元素当基准？</div>
+  <div class="go">→</div>
+</div>
+<div class="pgl">12</div>
+
+<section class="right">
+  <div class="fig-head"><span><b>FIG. 3.2</b> — PARTITION</span><span class="orange">第 14 帧 / 38</span></div>
+
+  <div class="figure">
+    <div class="rng" style="left:24px; width:366px;">≤ 7</div>
+    <div class="rng r" style="left:432px; width:228px;">&gt; 7</div>
+    <div class="bars">
+      <div class="cell"><div class="bar" style="height:130px"><span class="v">5</span></div><div class="idx">0</div></div>
+      <div class="cell"><div class="bar" style="height:86px"><span class="v">3</span></div><div class="idx">1</div></div>
+      <div class="cell"><div class="bar" style="height:196px"><span class="v">8</span></div><div class="idx">2</div></div>
+      <div class="cell"><div class="bar cmp" style="height:56px"><span class="v">1</span></div><div class="idx">3</div></div>
+      <div class="cell"><div class="bar" style="height:222px"><span class="v">9</span></div><div class="idx">4</div></div>
+      <div class="cell"><div class="bar" style="height:72px"><span class="v">2</span></div><div class="idx">5</div></div>
+      <div class="cell"><div class="bar pivot" style="height:170px"><span class="v">7</span></div><div class="idx">6</div></div>
+      <div class="cell"><div class="bar mv" style="height:106px"><span class="v">4</span></div><div class="idx">7</div></div>
+      <div class="cell"><div class="bar" style="height:142px"><span class="v">6</span></div><div class="idx">8</div></div>
+      <div class="cell"><div class="bar" style="height:244px"><span class="v">10</span></div><div class="idx">9</div></div>
+    </div>
+  </div>
+
+  <div class="caption"><b>图 3.2</b> · 7 与 4 交换后，基准落在下标 6；左右两区分别递归。</div>
+
+  <div class="ruler"><div class="cur"></div></div>
+  <div class="transport"><span class="pl">▶</span><span><b>014</b> / 038</span><span>1.0×</span><span style="margin-left:auto">← → 单步 · SPACE 播放</span></div>
+  <div class="fignote">虚线方块是「4」在上一帧的位置；斜纹表示正在参与比较的元素。</div>
+</section>
+
+<div class="pgr">13</div>
+
+</body>
+</html>

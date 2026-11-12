@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Concept D · Terminal</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #040706;
+    --panel: #07100B;
+    --line: #1F3A2A;
+    --green: #A8F0BC;
+    --mid: #6FBF8B;
+    --dim: #3F6A50;
+    --amber: #FFB000;
+    --red: #FF6B6B;
+    --mono: "Cascadia Mono", Consolas, monospace;
+  }
+  html, body { width: 1600px; height: 1000px; overflow: hidden; }
+  body { background: var(--bg); color: var(--green); font-family: var(--mono); }
+
+  .win {
+    position: absolute; left: 40px; top: 40px; width: 1520px; height: 920px;
+    border: 1px solid var(--line); background: var(--panel); overflow: hidden;
+  }
+  .win::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 20;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px);
+    opacity: .55;
+  }
+  .titlebar {
+    height: 38px; border-bottom: 1px solid var(--line); display: flex; align-items: center;
+    padding: 0 16px; gap: 14px; font-size: 10px; letter-spacing: 1px; color: var(--dim);
+  }
+  .titlebar b { color: var(--green); font-weight: 400; }
+  .titlebar .right { margin-left: auto; display: flex; gap: 18px; }
+  .titlebar .right i { font-style: normal; color: var(--amber); }
+
+  .status {
+    height: 28px; border-bottom: 1px solid var(--line); display: flex; align-items: center;
+    gap: 26px; padding: 0 16px; font-size: 9px; letter-spacing: 1px; color: var(--dim);
+  }
+  .status b { color: var(--green); font-weight: 400; }
+  .status .amber { color: var(--amber); }
+
+  .main { position: absolute; left: 0; right: 0; top: 66px; bottom: 150px; display: flex; }
+  .screen {
+    flex: 1; padding: 26px 20px 0 26px; overflow: hidden;
+    display: flex; align-items: flex-start; justify-content: center;
+  }
+  pre {
+    font-family: var(--mono); font-size: 17px; line-height: 18px; letter-spacing: 0;
+    color: var(--green); text-shadow: 0 0 8px rgba(168,240,188,.18);
+  }
+  pre .p { color: var(--amber); text-shadow: 0 0 10px rgba(255,176,0,.35); }
+  pre .c { color: var(--red); }
+  pre .m { color: #7E9C88; }
+  pre .g { color: var(--mid); }
+  pre .d { color: var(--dim); }
+
+  .side {
+    width: 430px; border-left: 1px solid var(--line); padding: 26px 24px 0;
+    font-size: 11px; line-height: 2.1; color: var(--mid); position: relative;
+  }
+  .side .h { color: var(--dim); font-size: 9px; letter-spacing: 2px; margin-bottom: 8px; }
+  .side .row { display: flex; gap: 10px; }
+  .side .t { color: var(--dim); width: 42px; flex: 0 0 42px; }
+  .side .k { color: var(--green); }
+  .side .a { color: var(--amber); }
+  .side .r { color: var(--red); }
+  .side .block { margin-top: 22px; }
+  .side .kv { display: flex; justify-content: space-between; border-bottom: 1px dotted #1B3224; padding: 2px 0; }
+  .side .kv span { color: var(--dim); }
+  .side .kv b { color: var(--green); font-weight: 400; }
+
+  .cmd {
+    position: absolute; left: 0; right: 0; bottom: 64px; height: 54px;
+    border-top: 1px solid var(--line); display: flex; align-items: center; gap: 12px;
+    padding: 0 26px; font-size: 14px;
+  }
+  .cmd .p { color: var(--amber); }
+  .cmd .txt { color: var(--green); }
+  .cursor { display: inline-block; width: 9px; height: 17px; background: var(--green); margin-left: 3px; vertical-align: -2px; }
+  .hints {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 64px; border-top: 1px dashed #1B3224;
+    display: flex; align-items: center; gap: 26px; padding: 0 26px;
+    font-size: 9px; letter-spacing: 1px; color: var(--dim);
+  }
+  .hints b { color: var(--mid); font-weight: 400; }
+  .hints .right { margin-left: auto; color: var(--dim); }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="titlebar">
+    <b>ALGO/OS</b> v0.1 — quicksort.partition — 80 × 24
+    <div class="right"><span>PID 0412</span><span><i>●</i> LIVE</span></div>
+  </div>
+
+  <div class="status">
+    <span>SYS <b>12 ms</b></span>
+    <span>MEM <b>24 MB</b></span>
+    <span>AI <b>READY</b></span>
+    <span>STEP <b>014 / 038</b></span>
+    <span class="amber">BUILTIN · 0 ms</span>
+  </div>
+
+  <div class="main">
+    <div class="screen">
+      <pre id="screen"></pre>
+    </div>
+
+    <div class="side">
+      <div class="h">// TRACE</div>
+      <div class="row"><span class="t">00:00</span><span><span class="k">boot</span> algo/os v0.1</span></div>
+      <div class="row"><span class="t">00:01</span><span><span class="k">load</span> scene "quicksort"</span></div>
+      <div class="row"><span class="t">00:02</span><span><span class="k">route</span> → builtin/quick</span></div>
+      <div class="row"><span class="t">00:02</span><span><span class="k">schema</span> → 38 steps <span class="a">valid</span></span></div>
+      <div class="row"><span class="t">00:03</span><span><span class="k">step 14</span> → swap(6,7)</span></div>
+      <div class="row"><span class="t">00:03</span><span><span class="k">pivot</span> → locked @ 6</span></div>
+
+      <div class="block">
+        <div class="h">// COMPLEXITY</div>
+        <div class="kv"><span>TIME</span><b>O(n log n)</b></div>
+        <div class="kv"><span>SPACE</span><b>O(log n)</b></div>
+        <div class="kv"><span>FRAMES</span><b>38</b></div>
+      </div>
+
+      <div class="block">
+        <div class="h">// PROMPT</div>
+        <div style="line-height:1.9; color:var(--green);">用 10 个元素演示快速排序，突出指针移动和交换过程</div>
+      </div>
+
+      <div class="block">
+        <div class="h">// EXPORT</div>
+        <div class="row"><span class="t">gif</span><span>38 frames · 8.2 s</span></div>
+        <div class="row"><span class="t">md</span><span>notes + prompt chain</span></div>
+        <div class="row"><span class="t">json</span><span>scene.dsl</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cmd"><span class="p">&gt;</span><span class="txt">用 10 个元素演示快速排序，突出指针移动和交换过程</span><span class="cursor"></span></div>
+
+  <div class="hints">
+    <span><b>TAB</b> 补全</span>
+    <span><b>↑</b> 历史</span>
+    <span><b>ENTER</b> 生成</span>
+    <span><b>SPACE</b> 播放</span>
+    <span><b>← →</b> 单步</span>
+    <span class="right">scene.dsl · version 1 · checksum 0xA14F</span>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var vals = [5, 3, 8, 1, 9, 2, 7, 4, 6, 10];
+    var rows = 17;
+    var W = 60;
+    var out = [];
+    function rep(ch, n) { var s = ''; for (var i = 0; i < n; i++) s += ch; return s; }
+
+    var left = '─ FIG.01 / PARTITION ';
+    var right = ' STEP 014/038 ';
+    var fill = W - left.length - right.length;
+    out.push('<span class="d">┌' + left + rep('─', fill) + right + '┐</span>');
+    out.push('<span class="d">│</span>' + rep(' ', W) + '<span class="d">│</span>');
+
+    for (var r = rows; r >= 1; r--) {
+      var line = '';
+      for (var i = 0; i < vals.length; i++) {
+        var h = Math.max(2, Math.round(vals[i] / 10 * 15));
+        var on = (rows - r) < h;
+        var ch = rep(' ', 5);
+        if (on) {
+          if (i === 6) ch = '<span class="p">█████</span>';
+          else if (i === 3) ch = '<span class="c">▒▒▒▒▒</span>';
+          else if (i === 7) ch = '<span class="m">░░░░░</span>';
+          else ch = '<span class="g">█████</span>';
+        }
+        line += ch + ' ';
+      }
+      out.push('<span class="d">│</span>' + line + '<span class="d">│</span>');
+    }
+
+    var lab = '', idx = '';
+    for (var j = 0; j < vals.length; j++) {
+      lab += '  ' + (vals[j] < 10 ? ' ' : '') + vals[j] + '  ';
+      idx += '  ' + (j < 10 ? ' ' : '') + j + '  ';
+    }
+    out.push('<span class="d">│</span>' + '<span class="g">' + lab + '</span>' + '<span class="d">│</span>');
+    out.push('<span class="d">│</span>' + '<span class="d">' + idx + '</span>' + '<span class="d">│</span>');
+    out.push('<span class="d">└' + rep('─', W) + '┘</span>');
+    out.push('');
+    out.push('<span class="p">7 与 4 交换</span>  基准归位 · 左区 6 个元素均 ≤ 7');
+    out.push('<span class="d">t(n) = 2t(n/2) + o(n)   →   o(n log n)</span>');
+    out.push('');
+    out.push('<span class="d">LEGEND</span>  <span class="g">█</span> normal   <span class="c">▒</span> compare   <span class="m">░</span> moving   <span class="p">▓</span> pivot');
+    out.push('');
+    out.push('<span class="d">NEXT</span>');
+    out.push('<span class="d">15</span>  <span class="g">compare a[3] with 7</span>      <span class="d">→ false</span>');
+    out.push('<span class="d">16</span>  <span class="g">i++ · j++</span>                  <span class="d">→ 4, 5</span>');
+
+    document.getElementById('screen').innerHTML = out.join('\n');
+  })();
+</script>
+</body>
+</html>
