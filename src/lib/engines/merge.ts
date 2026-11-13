@@ -1,21 +1,34 @@
 import { validateScene, type Scene, type Step } from '../dsl';
+import { clampInt, sampleArray, type Params } from './common';
 
-function buildSteps(input: number[]): Step[] {
+interface Marks {
+  divide: number;
+  recurse: number;
+  merge: number;
+  write: number;
+}
+
+function buildSteps(input: number[]): { steps: Step[]; marks: Marks } {
   const a = [...input];
   const steps: Step[] = [];
+  const marks: Marks = { divide: 0, recurse: 0, merge: 0, write: 0 };
+  const recorded = new Set<keyof Marks>();
   const n = a.length;
+  let comparisons = 0;
+  let writes = 0;
 
-  const push = (s: {
-    caption: string;
-    codeLine: number;
-    compare?: number | null;
-    range?: [number, number];
-    doneAll?: boolean;
-  }) => {
+  const push = (
+    s: { caption: string; codeLine: number; compare?: number | null; range?: [number, number]; doneAll?: boolean },
+    mark?: keyof Marks,
+  ) => {
     steps.push({
       caption: s.caption,
       codeLine: s.codeLine,
       doneAll: s.doneAll,
+      metrics: [
+        { label: '比较', value: String(comparisons) },
+        { label: '写入', value: String(writes) },
+      ],
       state: {
         kind: 'array',
         values: [...a],
@@ -26,6 +39,10 @@ function buildSteps(input: number[]): Step[] {
         range: s.range ?? [0, n - 1],
       },
     });
+    if (mark && !recorded.has(mark)) {
+      recorded.add(mark);
+      marks[mark] = steps.length - 1;
+    }
   };
 
   const merge = (l: number, m: number, r: number) => {
@@ -33,34 +50,33 @@ function buildSteps(input: number[]): Step[] {
     const right = a.slice(m + 1, r + 1);
     const range: [number, number] = [l, r];
 
-    push({ caption: `合并 [${l}..${m}] 与 [${m + 1}..${r}]`, codeLine: 5, range });
+    push({ caption: `合并 [${l}..${m}] 与 [${m + 1}..${r}]`, codeLine: 5, range }, 'merge');
 
     let i = 0;
     let j = 0;
     let k = l;
 
     while (i < left.length && j < right.length) {
-      push({
-        caption: `比较左段 ${left[i]} 与右段 ${right[j]}`,
-        codeLine: 5,
-        compare: k,
-        range,
-      });
+      comparisons += 1;
+      push({ caption: `比较左段 ${left[i]} 与右段 ${right[j]}`, codeLine: 5, compare: k, range }, 'recurse');
       a[k] = left[i] <= right[j] ? left[i++] : right[j++];
-      push({ caption: `写入 a[${k}] = ${a[k]}`, codeLine: 6, compare: k, range });
-      k++;
+      writes += 1;
+      push({ caption: `写入 a[${k}] = ${a[k]}`, codeLine: 6, compare: k, range }, 'write');
+      k += 1;
     }
 
     while (i < left.length) {
       a[k] = left[i++];
+      writes += 1;
       push({ caption: `补入左段 ${a[k]} → a[${k}]`, codeLine: 6, compare: k, range });
-      k++;
+      k += 1;
     }
 
     while (j < right.length) {
       a[k] = right[j++];
+      writes += 1;
       push({ caption: `补入右段 ${a[k]} → a[${k}]`, codeLine: 6, compare: k, range });
-      k++;
+      k += 1;
     }
 
     push({ caption: `区间 [${l}..${r}] 合并完成`, codeLine: 6, range });
@@ -74,14 +90,17 @@ function buildSteps(input: number[]): Step[] {
     merge(l, m, r);
   };
 
-  push({ caption: '归并排序：分成两半，分别排好，再合并', codeLine: 1 });
+  push({ caption: '归并排序：分成两半，分别排好，再合并', codeLine: 1 }, 'divide');
   sort(0, n - 1);
   push({ caption: '排序完成：整个数组有序。', codeLine: 6, doneAll: true });
 
-  return steps;
+  return { steps, marks };
 }
 
-export function mergeScene(): Scene {
+export function mergeScene(params: Params = {}): Scene {
+  const size = clampInt(params.size, 10, 4, 12);
+  const { steps, marks } = buildSteps(sampleArray(size));
+
   return validateScene({
     id: 'merge',
     title: '归并',
@@ -116,12 +135,13 @@ export function mergeScene(): Scene {
       { label: '最坏情况', value: 'O(n log n)' },
     ],
     outline: [
-      { label: '二分', value: 'mid' },
-      { label: '递归', value: 'divide' },
-      { label: '合并', value: 'merge' },
-      { label: '写回', value: 'write' },
+      { label: '二分', value: 'mid', step: marks.divide },
+      { label: '递归', value: 'divide', step: marks.recurse },
+      { label: '合并', value: 'merge', step: marks.merge },
+      { label: '写回', value: 'write', step: marks.write },
     ],
+    params: [{ key: 'size', label: '数组规模', kind: 'int', default: 10, min: 4, max: 12 }],
     source: 'builtin',
-    steps: buildSteps([5, 3, 8, 1, 9, 2, 4, 6, 10, 7]),
+    steps,
   });
 }

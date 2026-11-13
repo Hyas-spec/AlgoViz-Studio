@@ -91,7 +91,28 @@ export const stepSchema = z.object({
   codeLine: z.number().int().min(0),
   durationMs: z.number().int().min(200).max(5000).optional(),
   state: stepStateSchema,
+  metrics: z
+    .array(z.object({ label: z.string().min(1).max(8), value: z.string().min(1).max(12) }))
+    .max(3)
+    .optional(),
   doneAll: z.boolean().optional(),
+});
+
+/** 参数注记：内置引擎按参数即时重算；enum 用 options 表示。 */
+export const paramSpecSchema = z.object({
+  key: z.string().min(1).max(12),
+  label: z.string().min(1).max(12),
+  kind: z.enum(['int', 'enum']),
+  default: z.number().int(),
+  min: z.number().int(),
+  max: z.number().int(),
+  options: z.array(z.object({ value: z.number().int(), label: z.string().min(1).max(12) })).min(2).max(4).optional(),
+});
+
+export const outlineItemSchema = z.object({
+  label: z.string().min(1).max(16),
+  value: z.string().min(1).max(24),
+  step: z.number().int().min(0).optional(),
 });
 
 export const sceneSchema = z.object({
@@ -113,8 +134,9 @@ export const sceneSchema = z.object({
   question: z.string().min(1).max(160),
   figure: z.string().min(1).max(40),
   facts: z.array(z.object({ label: z.string().min(1).max(16), value: z.string().min(1).max(24) })).length(3),
-  outline: z.array(z.object({ label: z.string().min(1).max(16), value: z.string().min(1).max(24) })).length(4),
+  outline: z.array(outlineItemSchema).length(4),
   steps: z.array(stepSchema).min(1).max(120),
+  params: z.array(paramSpecSchema).max(4),
   source: z.enum(['builtin', 'ai']),
 });
 
@@ -125,6 +147,7 @@ export type GraphState = z.infer<typeof graphStateSchema>;
 export type SequenceState = z.infer<typeof sequenceStateSchema>;
 export type StepState = z.infer<typeof stepStateSchema>;
 export type Step = z.infer<typeof stepSchema>;
+export type ParamSpec = z.infer<typeof paramSpecSchema>;
 export type Scene = z.infer<typeof sceneSchema>;
 
 /** 结构化校验错误：path + message，可直接回喂模型做修复。 */
@@ -298,6 +321,36 @@ function collectIssues(scene: Scene): SceneIssue[] {
   const issues: SceneIssue[] = [];
   let arrayLength: number | null = null;
   let previousTree: Map<string, string | null> | null = null;
+
+  const paramKeys = new Set<string>();
+  scene.params.forEach((param, i) => {
+    const path = `params[${i}]`;
+    if (paramKeys.has(param.key)) {
+      issues.push({ path: `${path}.key`, message: `参数 key 重复：${param.key}` });
+    }
+    paramKeys.add(param.key);
+
+    if (param.kind === 'enum') {
+      if (!param.options || param.options.length < 2) {
+        issues.push({ path: `${path}.options`, message: 'enum 参数至少需要 2 个选项' });
+      } else if (!param.options.some((option) => option.value === param.default)) {
+        issues.push({ path: `${path}.default`, message: `默认值 ${param.default} 不在 options 里` });
+      }
+    } else {
+      if (param.min > param.max) {
+        issues.push({ path, message: `min ${param.min} 大于 max ${param.max}` });
+      }
+      if (param.default < param.min || param.default > param.max) {
+        issues.push({ path: `${path}.default`, message: `默认值 ${param.default} 不在 [${param.min}, ${param.max}]` });
+      }
+    }
+  });
+
+  scene.outline.forEach((item, i) => {
+    if (item.step !== undefined && (item.step < 0 || item.step >= scene.steps.length)) {
+      issues.push({ path: `outline[${i}].step`, message: `步骤下标 ${item.step} 超出 0..${scene.steps.length - 1}` });
+    }
+  });
 
   scene.steps.forEach((step, i) => {
     const path = `steps[${i}].state`;

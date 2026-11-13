@@ -1,30 +1,62 @@
 import type { Scene } from '../dsl';
 import { bubbleScene } from './bubble';
+import type { Params } from './common';
 import { mergeScene } from './merge';
 import { quickScene } from './quick';
 import { inOrderScene, levelOrderScene, preOrderScene } from './tree';
 
-export const SCENES = {
-  quick: quickScene(),
-  bubble: bubbleScene(),
-  merge: mergeScene(),
-  levelorder: levelOrderScene(),
-  preorder: preOrderScene(),
-  inorder: inOrderScene(),
-} as const satisfies Record<string, Scene>;
+export type SceneId = 'quick' | 'bubble' | 'merge' | 'levelorder' | 'preorder' | 'inorder';
+export type SceneGroupId = 'sort' | 'tree';
 
-export type SceneId = keyof typeof SCENES;
+interface SceneModule {
+  label: string;
+  group: SceneGroupId;
+  defaults: Params;
+  build: (params: Params) => Scene;
+}
+
+const MODULES: Record<SceneId, SceneModule> = {
+  quick: { label: '快排', group: 'sort', defaults: { size: 10, pivot: 0 }, build: quickScene },
+  bubble: { label: '冒泡', group: 'sort', defaults: { size: 10 }, build: bubbleScene },
+  merge: { label: '归并', group: 'sort', defaults: { size: 10 }, build: mergeScene },
+  levelorder: { label: '层序', group: 'tree', defaults: { levels: 4 }, build: levelOrderScene },
+  preorder: { label: '前序', group: 'tree', defaults: { levels: 4 }, build: preOrderScene },
+  inorder: { label: '中序', group: 'tree', defaults: { levels: 4 }, build: inOrderScene },
+};
 
 export const SCENE_ORDER: SceneId[] = ['quick', 'bubble', 'merge', 'levelorder', 'preorder', 'inorder'];
 
-export const SCENE_LABEL: Record<SceneId, string> = {
-  quick: '快排',
-  bubble: '冒泡',
-  merge: '归并',
-  levelorder: '层序',
-  preorder: '前序',
-  inorder: '中序',
-};
+export const SCENE_GROUPS: { id: SceneGroupId; label: string; scenes: SceneId[] }[] = [
+  { id: 'sort', label: '排序', scenes: ['quick', 'bubble', 'merge'] },
+  { id: 'tree', label: '树', scenes: ['levelorder', 'preorder', 'inorder'] },
+];
+
+export const SCENE_LABEL = Object.fromEntries(
+  (Object.keys(MODULES) as SceneId[]).map((id) => [id, MODULES[id].label]),
+) as Record<SceneId, string>;
+
+export const SCENE_DEFAULTS = Object.fromEntries(
+  (Object.keys(MODULES) as SceneId[]).map((id) => [id, MODULES[id].defaults]),
+) as Record<SceneId, Params>;
+
+export function isSceneId(value: string | null): value is SceneId {
+  return value !== null && value in MODULES;
+}
+
+/** 兼容旧调用：按默认参数实例化的六个场景（v0.4 起界面改用 createScene）。 */
+export const SCENES = Object.fromEntries(
+  (Object.keys(MODULES) as SceneId[]).map((id) => [id, MODULES[id].build(MODULES[id].defaults)]),
+) as Record<SceneId, Scene>;
+
+/** 参数缺省时用场景默认值；引擎内部再做一次范围钳制。 */
+export function createScene(id: SceneId, params: Params = {}): Scene {
+  return MODULES[id].build({ ...MODULES[id].defaults, ...params });
+}
+
+/** 当前场景的默认参数对象（切换场景时重置用）。 */
+export function sceneDefaults(id: SceneId): Params {
+  return { ...MODULES[id].defaults };
+}
 
 /** 本地规则路由：命中关键词直接返回内置场景，0 延迟；未命中返回 null，交给 AI。 */
 export function routeScene(prompt: string): SceneId | null {

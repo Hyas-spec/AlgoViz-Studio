@@ -1,9 +1,7 @@
 import { validateScene, type Scene, type Step, type TreeNode } from '../dsl';
+import { clampInt, treeValues, type Params } from './common';
 
 type Traversal = 'levelorder' | 'preorder' | 'inorder';
-
-/** 固定满二叉树：4 层 15 个节点，层序 / 前序 / 中序共用同一棵树。 */
-const BST_VALUES = [8, 4, 12, 2, 6, 10, 14, 1, 3, 5, 7, 9, 11, 13, 15];
 
 function buildBst(values: number[]): TreeNode[] {
   const nodes: TreeNode[] = [];
@@ -42,10 +40,16 @@ function childIds(nodes: TreeNode[], id: string): string[] {
     .map((node) => node.id);
 }
 
-function stepsFor(traversal: Traversal, nodes: TreeNode[], rootId: string): Step[] {
+function stepsFor(traversal: Traversal, nodes: TreeNode[], rootId: string): { steps: Step[]; marks: number[] } {
   const steps: Step[] = [];
   const visited: string[] = [];
+  const marks = [-1, -1, -1, -1];
   const labelOf = new Map(nodes.map((node) => [node.id, node.label]));
+  const frontierLabel = traversal === 'levelorder' ? '队列' : '栈';
+
+  const mark = (slot: number) => {
+    if (marks[slot] < 0) marks[slot] = steps.length;
+  };
 
   const push = (
     current: string | null,
@@ -58,13 +62,17 @@ function stepsFor(traversal: Traversal, nodes: TreeNode[], rootId: string): Step
       caption,
       codeLine,
       doneAll: doneAll ? true : undefined,
+      metrics: [
+        { label: '已访问', value: `${visited.length}/${nodes.length}` },
+        { label: frontierLabel, value: String(frontier.length) },
+      ],
       state: {
         kind: 'tree',
         nodes: nodes.map((node) => ({ ...node })),
         order: [...visited],
         current,
         frontier: [...frontier],
-        frontierLabel: traversal === 'levelorder' ? '队列' : '栈',
+        frontierLabel,
       },
     });
   };
@@ -72,35 +80,53 @@ function stepsFor(traversal: Traversal, nodes: TreeNode[], rootId: string): Step
   if (traversal === 'levelorder') {
     const queue = [rootId];
     push(null, queue, '把根节点放入队列；队列里是「已发现、还没访问」的节点。', 2);
+    mark(0);
     while (queue.length > 0) {
       const id = queue.shift() as string;
       visited.push(id);
+      if (marks[1] < 0) mark(1);
+      if (visited.length === 2) mark(3);
       push(id, queue, `队首出队 ${labelOf.get(id)}，访问第 ${visited.length} 个节点。`, 4);
       const kids = childIds(nodes, id);
       if (kids.length > 0) {
         queue.push(...kids);
+        mark(2);
         push(id, queue, `把 ${labelOf.get(id)} 的左、右孩子依次入队。`, 6);
       }
     }
     push(null, [], `遍历完成，访问顺序：${visited.map((id) => labelOf.get(id)).join(' → ')}。`, 6, true);
-    return steps;
+    mark(3);
+    return { steps, marks };
   }
 
   if (traversal === 'preorder') {
     const stack = [rootId];
     push(null, stack, '把根节点压入栈；栈顶就是下一个要访问的节点。', 2);
+    mark(0);
     while (stack.length > 0) {
       const id = stack.pop() as string;
       visited.push(id);
+      mark(1);
       push(id, stack, `弹出 ${labelOf.get(id)}，访问第 ${visited.length} 个节点。`, 4);
+
       const kids = childIds(nodes, id);
-      if (kids.length > 0) {
-        stack.push(...[...kids].reverse());
-        push(id, stack, `先压右孩子、再压左孩子，保证左子树先出栈。`, 5);
+      if (kids.length === 0) {
+        mark(3);
+        continue;
+      }
+      for (const [index, kid] of [...kids].reverse().entries()) {
+        stack.push(kid);
+        mark(2);
+        push(
+          id,
+          stack,
+          `把 ${labelOf.get(kid)} 压栈：${index === 0 ? '右孩子先进，晚一点出栈' : '左孩子后进，下一次先出栈'}。`,
+          4,
+        );
       }
     }
     push(null, [], `遍历完成，访问顺序：${visited.map((id) => labelOf.get(id)).join(' → ')}。`, 5, true);
-    return steps;
+    return { steps, marks };
   }
 
   const stack: string[] = [];
@@ -109,20 +135,25 @@ function stepsFor(traversal: Traversal, nodes: TreeNode[], rootId: string): Step
   while (cursor !== null || stack.length > 0) {
     while (cursor !== null) {
       stack.push(cursor);
+      mark(0);
       push(null, stack, `压栈 ${labelOf.get(cursor)}，继续向左。`, 4);
-      cursor = childIds(nodes, cursor).find((id) => nodes.find((n) => n.id === id)?.side === 'L') ?? null;
+      const kids = childIds(nodes, cursor);
+      cursor = kids.find((id) => nodes.find((n) => n.id === id)?.side === 'L') ?? null;
     }
     const id = stack.pop() as string;
     visited.push(id);
+    mark(1);
     push(id, stack, `栈顶弹出 ${labelOf.get(id)}，访问第 ${visited.length} 个节点。`, 5);
     const right = childIds(nodes, id).find((childId) => nodes.find((n) => n.id === childId)?.side === 'R') ?? null;
     if (right) {
+      mark(2);
       push(id, stack, `转向 ${labelOf.get(id)} 的右子树。`, 6);
     }
     cursor = right;
   }
   push(null, [], `遍历完成，访问顺序：${visited.map((id) => labelOf.get(id)).join(' → ')}。`, 6, true);
-  return steps;
+  marks[3] = steps.length - 1;
+  return { steps, marks };
 }
 
 interface Spec {
@@ -173,9 +204,9 @@ const SPECS: Record<Traversal, Spec> = {
     ],
     outline: [
       { label: '根入队', value: 'enqueue' },
-      { label: '取队首', value: 'shift' },
-      { label: '访问', value: 'visit' },
+      { label: '出队访问', value: 'shift' },
       { label: '孩子入队', value: 'expand' },
+      { label: '进入下一层', value: 'next level' },
     ],
   },
   preorder: {
@@ -208,8 +239,8 @@ const SPECS: Record<Traversal, Spec> = {
     outline: [
       { label: '根入栈', value: 'push' },
       { label: '弹栈访问', value: 'pop' },
-      { label: '右孩子入栈', value: 'right' },
-      { label: '左孩子入栈', value: 'left' },
+      { label: '压孩子', value: 'push child' },
+      { label: '到达叶子', value: 'leaf' },
     ],
   },
   inorder: {
@@ -244,14 +275,17 @@ const SPECS: Record<Traversal, Spec> = {
       { label: '一路向左', value: 'push' },
       { label: '弹栈访问', value: 'pop' },
       { label: '转向右子树', value: 'right' },
-      { label: 'BST 有序', value: 'sorted' },
+      { label: '遍历完成', value: 'done' },
     ],
   },
 };
 
-function sceneFor(traversal: Traversal): Scene {
+function sceneFor(traversal: Traversal, params: Params): Scene {
   const spec = SPECS[traversal];
-  const nodes = buildBst(BST_VALUES);
+  const levels = clampInt(params.levels, 4, 3, 4);
+  const nodes = buildBst(treeValues(levels));
+  const { steps, marks } = stepsFor(traversal, nodes, nodes[0].id);
+
   return validateScene({
     id: traversal,
     title: spec.title,
@@ -271,19 +305,13 @@ function sceneFor(traversal: Traversal): Scene {
     question: spec.question,
     figure: spec.figure,
     facts: spec.facts,
-    outline: spec.outline,
+    outline: spec.outline.map((item, i) => ({ ...item, step: marks[i] >= 0 ? marks[i] : 0 })),
+    params: [{ key: 'levels', label: '树高', kind: 'int', default: 4, min: 3, max: 4 }],
     source: 'builtin',
-    steps: stepsFor(traversal, nodes, nodes[0].id),
+    steps,
   });
 }
 
-export const levelOrderScene = () => sceneFor('levelorder');
-export const preOrderScene = () => sceneFor('preorder');
-export const inOrderScene = () => sceneFor('inorder');
-
-/** 供单测核对遍历顺序。 */
-export const TRAVERSAL_EXPECTED: Record<Traversal, number[]> = {
-  levelorder: [8, 4, 12, 2, 6, 10, 14, 1, 3, 5, 7, 9, 11, 13, 15],
-  preorder: [8, 4, 2, 1, 3, 6, 5, 7, 12, 10, 9, 11, 14, 13, 15],
-  inorder: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-};
+export const levelOrderScene = (params: Params = {}) => sceneFor('levelorder', params);
+export const preOrderScene = (params: Params = {}) => sceneFor('preorder', params);
+export const inOrderScene = (params: Params = {}) => sceneFor('inorder', params);
