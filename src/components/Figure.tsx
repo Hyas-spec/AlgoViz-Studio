@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { describeState } from '../lib/describe';
 import type { Step, StepState } from '../lib/dsl';
 import { drawArray } from './figure/array';
 import { drawPlate, easeOutCubic } from './figure/plate';
@@ -92,7 +93,12 @@ export function Figure({ step }: { step: Step }) {
 
   return (
     <div ref={wrapRef} className="figure-canvas-wrap">
-      <canvas ref={canvasRef} className="figure-canvas" role="img" aria-label={`图版：${step.caption}`} />
+      <canvas
+        ref={canvasRef}
+        className="figure-canvas"
+        role="img"
+        aria-label={`图版：${describeState(step.state)}`}
+      />
     </div>
   );
 }

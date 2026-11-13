@@ -43,11 +43,6 @@ export function isSceneId(value: string | null): value is SceneId {
   return value !== null && value in MODULES;
 }
 
-/** 兼容旧调用：按默认参数实例化的六个场景（v0.4 起界面改用 createScene）。 */
-export const SCENES = Object.fromEntries(
-  (Object.keys(MODULES) as SceneId[]).map((id) => [id, MODULES[id].build(MODULES[id].defaults)]),
-) as Record<SceneId, Scene>;
-
 /** 参数缺省时用场景默认值；引擎内部再做一次范围钳制。 */
 export function createScene(id: SceneId, params: Params = {}): Scene {
   return MODULES[id].build({ ...MODULES[id].defaults, ...params });
