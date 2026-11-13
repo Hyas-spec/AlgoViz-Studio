@@ -12,8 +12,9 @@
 - ✅ 双页版式 + 数组图版 + 三种排序（快排 / 冒泡 / 归并）
 - ✅ 树图版 + 三种遍历（层序 / 前序 / 中序）
 - ✅ Scene DSL v2：四态联合（array / tree / graph / sequence）+ Zod + 业务校验 + 规则路由
+- ✅ LLM 代理 `/api/llm`：Key 只在 Node 侧，dev / preview 通用；已验通 DeepSeek 非流式与 SSE
 - 🚧 进行中：图 / 时序图版，公式与伪代码联动
-- ⬜ 待接入：LLM 生成、导出、KaTeX、JSON 抽屉
+- ⬜ 待接入：AI 生成场景（11/15）、导出、KaTeX、JSON 抽屉
 
 ## 场景
 
@@ -30,6 +31,18 @@
 加 `&step=12` 可直接跳到第 13 帧，方便截图与讲解。
 
 ![层序遍历](mockups/scene-levelorder.png)
+
+## AI 代理（可选）
+
+内置场景不需要 Key；要试模型连通性，把 `.env.local.example` 复制成 `.env.local` 并填 `LLM_API_KEY`，然后：
+
+```bash
+npm run dev
+curl http://127.0.0.1:5173/api/llm/health
+# {"ok":true,"keyConfigured":true,"model":"deepseek-chat","upstream":"https://api.deepseek.com/v1"}
+```
+
+`POST /api/llm` 接受 OpenAI 兼容的 `{ messages, model?, temperature?, max_tokens?, stream? }`，支持 SSE 透传；Key 不会出现在前端代码或响应里。`npm run preview` 同样生效。
 
 ## 10 分钟复现
 
