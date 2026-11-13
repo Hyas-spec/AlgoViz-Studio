@@ -2,6 +2,10 @@ node_modules
 dist
 .npm-cache
 .edge-profile
+.edge-profile*
+.edge-p*
+.edge-cdp
+.tmp
 .env.local
 .env.*.local
 *.local

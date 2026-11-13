@@ -10,19 +10,26 @@
 
 - ✅ 视觉定稿：讲义双页（The Spread）
 - ✅ 双页版式 + 数组图版 + 三种排序（快排 / 冒泡 / 归并）
-- ✅ Scene DSL + Zod 校验 + 本地规则路由
-- 🚧 进行中：树 / 图 / 时序图版
-- ⬜ 待接入：LLM 生成、导出、Monaco/KaTeX
+- ✅ 树图版 + 三种遍历（层序 / 前序 / 中序）
+- ✅ Scene DSL v2：四态联合（array / tree / graph / sequence）+ Zod + 业务校验 + 规则路由
+- 🚧 进行中：图 / 时序图版，公式与伪代码联动
+- ⬜ 待接入：LLM 生成、导出、KaTeX、JSON 抽屉
 
 ## 场景
 
-| 场景 | 步数 | 特点 |
-|---|---|---|
-| 快排 | 46 | Lomuto 分区、末元素基准 |
-| 冒泡 | 72 | 相邻比较、稳定 |
-| 归并 | 78 | 双指针合并、O(n) 辅助空间 |
+| 场景 | 图版 | 步数 | 特点 |
+|---|---|---|---|
+| 快排 | 数组 | 46 | Lomuto 分区、末元素基准 |
+| 冒泡 | 数组 | 72 | 相邻比较、稳定 |
+| 归并 | 数组 | 78 | 双指针合并、O(n) 辅助空间 |
+| 层序 | 树 | 24 | 队列、逐层展开 |
+| 前序 | 树 | 24 | 栈、右孩子先压 |
+| 中序 | 树 | 39 | 一路向左、BST 升序 |
 
-在页眉下方可切换，或访问 `/?scene=quick|bubble|merge`。
+在页眉下方可切换，或访问 `/?scene=quick|bubble|merge|levelorder|preorder|inorder`。
+加 `&step=12` 可直接跳到第 13 帧，方便截图与讲解。
+
+![层序遍历](mockups/scene-levelorder.png)
 
 ## 10 分钟复现
 
@@ -43,7 +50,8 @@ npm run dev
 #    http://127.0.0.1:5173
 ```
 
-验收：双页可见；播放/单步/标尺可用；`<780px` 自动单列且图版在前。
+验收：双页可见；播放/单步/标尺可用；六种场景都能播放；`<780px` 自动单列且图版在前。
+`npm test` 应全绿（25 个用例，覆盖三种排序、三种遍历、四态校验器与规则路由）。
 
 常见问题：
 
@@ -58,21 +66,26 @@ npm run dev
 npm run dev        # http://127.0.0.1:5173
 npm run build      # tsc --noEmit && vite build
 npm run typecheck
+npm test           # vitest run
 ```
 
 ## 目录
 
 ```
 docs/             设计书、操作流程、Prompt 记录
-  prompts/        文字版 Prompt 链（00 界面选型、01 脚手架与双页）
+  prompts/        文字版 Prompt 链（00 界面选型、01 脚手架与双页、02 引擎与三种排序）
 mockups/          视觉基线与兼容性截图
-src/              应用源码
+src/
+  components/     双页界面、图版渲染器（figure/array、figure/tree）
+  lib/dsl.ts      Scene DSL 与业务校验
+  lib/engines/    快排 / 冒泡 / 归并 / 树遍历
 ```
 
 ## 设计文档
 
-- [项目设计书](docs/01-项目设计书.md)（v0.2，视觉定稿）
+- [项目设计书](docs/01-项目设计书.md)（v0.2，视觉定稿；v0.3 实现对照见 §9 末）
 - [操作流程](docs/00-操作流程.md)
 - [Prompt 00 · 界面选型](docs/prompts/00-界面选型.md)
 - [Prompt 01 · 脚手架与双页](docs/prompts/01-脚手架与双页.md)
+- [Prompt 02 · 引擎与场景](docs/prompts/02-引擎与三种排序.md)
 - 视觉基线：[concept-spread.png](mockups/concept-spread.png)
