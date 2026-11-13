@@ -92,7 +92,7 @@ export function Figure({ step }: { step: Step }) {
 
   return (
     <div ref={wrapRef} className="figure-canvas-wrap">
-      <canvas ref={canvasRef} className="figure-canvas" />
+      <canvas ref={canvasRef} className="figure-canvas" role="img" aria-label={`图版：${step.caption}`} />
     </div>
   );
 }

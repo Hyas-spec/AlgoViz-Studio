@@ -16,6 +16,7 @@ export default function App() {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [question, setQuestion] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
   const sceneRef = useRef(sceneId);
 
   const scene = SCENES[sceneId];
@@ -39,7 +40,19 @@ export default function App() {
     sceneRef.current = sceneId;
     setIndex(0);
     setPlaying(false);
+    setNotice(null);
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('scene', sceneId);
+    url.searchParams.delete('step');
+    window.history.replaceState(null, '', url);
   }, [sceneId]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const id = window.setTimeout(() => setNotice(null), 7000);
+    return () => window.clearTimeout(id);
+  }, [notice]);
 
   useEffect(() => {
     if (!playing) return;
@@ -93,12 +106,11 @@ export default function App() {
         <section className="page left">
           <div className="left-scroll">
             <div className="chapter">{scene.chapter}</div>
-            <div className="scene-switch" role="tablist" aria-label="选择场景">
+            <div className="scene-switch" role="group" aria-label="选择场景">
               {SCENE_ORDER.map((id) => (
                 <button
                   key={id}
-                  role="tab"
-                  aria-selected={id === sceneId}
+                  aria-pressed={id === sceneId}
                   className={id === sceneId ? 'on' : ''}
                   onClick={() => {
                     setSceneId(id);
@@ -165,6 +177,12 @@ export default function App() {
               ))}
             </div>
 
+            {notice ? (
+              <p className="ask-notice" role="status">
+                {notice}
+              </p>
+            ) : null}
+
             <form
               className="ask"
               onSubmit={(e) => {
@@ -174,15 +192,18 @@ export default function App() {
                   setSceneId(next);
                   setQuestion('');
                 } else {
-                  setIndex(0);
-                  setPlaying(false);
-                  setPlaying(true);
+                  setNotice(
+                    `「${question.trim() || '这句追问'}」没有命中内置场景。AI 生成正在接线（11/15），先试试上方的六个内置场景。`,
+                  );
                 }
               }}
             >
               <input
                 value={question}
-                onChange={(e) => setQuestion(e.target.value)}
+                onChange={(e) => {
+                  setQuestion(e.target.value);
+                  setNotice(null);
+                }}
                 placeholder={scene.question}
                 aria-label="追问"
               />
@@ -212,6 +233,12 @@ export default function App() {
           <div className="caption">
             <b>图 {scene.figNo}</b> · {step.caption}
           </div>
+
+          <ol className="sr-only" aria-label="本场景全部步骤">
+            {steps.map((item, i) => (
+              <li key={i}>{`第 ${i + 1} 步：${item.caption}`}</li>
+            ))}
+          </ol>
 
           <div
             className="ruler"
