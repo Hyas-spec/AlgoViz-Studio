@@ -1,4 +1,4 @@
-import { sceneSchema, type Scene, type Step } from '../dsl';
+import { validateScene, type Scene, type Step } from '../dsl';
 
 function buildSteps(input: number[]): Step[] {
   const a = [...input];
@@ -13,15 +13,18 @@ function buildSteps(input: number[]): Step[] {
     doneAll?: boolean;
   }) => {
     steps.push({
-      values: [...a],
-      pivot: null,
-      compare: s.compare ?? null,
-      swap: null,
-      locked: s.doneAll ? a.map((_, i) => i) : [],
-      range: s.range ?? [0, n - 1],
       caption: s.caption,
       codeLine: s.codeLine,
       doneAll: s.doneAll,
+      state: {
+        kind: 'array',
+        values: [...a],
+        pivot: null,
+        compare: s.compare ?? null,
+        swap: null,
+        locked: s.doneAll ? a.map((_, i) => i) : [],
+        range: s.range ?? [0, n - 1],
+      },
     });
   };
 
@@ -79,11 +82,16 @@ function buildSteps(input: number[]): Step[] {
 }
 
 export function mergeScene(): Scene {
-  return sceneSchema.parse({
+  return validateScene({
     id: 'merge',
     title: '归并',
     chapter: 'CH.03 / SORTING — MERGE',
+    section: '第三讲 · 排序与选择',
     kicker: 'MERGE SORT',
+    figNo: '3.3',
+    pages: [14, 15],
+    layout: 'array',
+    category: 'sort',
     summary: '把区间一分为二，分别排好，再用双指针把两段有序序列合并成一段。',
     body: [
       '归并排序先递归到单个元素，再一层层向上合并。每次合并只做一件事：比较两段当前最小的元素，把更小的那个写回原数组。',

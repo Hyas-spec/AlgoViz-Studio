@@ -1,4 +1,4 @@
-import { sceneSchema, type Scene, type Step } from '../dsl';
+import { validateScene, type Scene, type Step } from '../dsl';
 
 function buildSteps(input: number[]): Step[] {
   const a = [...input];
@@ -16,15 +16,18 @@ function buildSteps(input: number[]): Step[] {
     locked?: number[];
   }) => {
     steps.push({
-      values: [...a],
-      pivot: s.pivot ?? null,
-      compare: s.compare ?? null,
-      swap: s.swap ?? null,
-      locked: s.locked ? [...s.locked].sort((x, y) => x - y) : [...locked].sort((x, y) => x - y),
-      range: s.range,
       caption: s.caption,
       codeLine: s.codeLine,
       doneAll: s.doneAll,
+      state: {
+        kind: 'array',
+        values: [...a],
+        pivot: s.pivot ?? null,
+        compare: s.compare ?? null,
+        swap: s.swap ?? null,
+        locked: s.locked ? [...s.locked].sort((x, y) => x - y) : [...locked].sort((x, y) => x - y),
+        range: s.range,
+      },
     });
   };
 
@@ -82,11 +85,16 @@ function buildSteps(input: number[]): Step[] {
 }
 
 export function quickScene(): Scene {
-  return sceneSchema.parse({
+  return validateScene({
     id: 'quick',
     title: '分区',
     chapter: 'CH.03 / SORTING — QUICKSORT',
+    section: '第三讲 · 排序与选择',
     kicker: 'QUICKSORT',
+    figNo: '3.2',
+    pages: [12, 13],
+    layout: 'array',
+    category: 'sort',
     summary: '把小于基准的放左边，大于的放右边，再对两侧递归。整个快速排序，本质上就是这一件事。',
     body: [
       '分区结束后，基准落在它的最终位置：左区每个元素都不大于它，右区每个元素都大于它。接下来对两侧递归；区间缩到 1 或 0 时自然结束。',

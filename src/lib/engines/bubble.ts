@@ -1,4 +1,4 @@
-import { sceneSchema, type Scene, type Step } from '../dsl';
+import { validateScene, type Scene, type Step } from '../dsl';
 
 function buildSteps(input: number[]): Step[] {
   const a = [...input];
@@ -15,15 +15,18 @@ function buildSteps(input: number[]): Step[] {
     locked?: number[];
   }) => {
     steps.push({
-      values: [...a],
-      pivot: null,
-      compare: s.compare ?? null,
-      swap: s.swap ?? null,
-      locked: s.locked ? [...s.locked].sort((x, y) => x - y) : [...locked].sort((x, y) => x - y),
-      range: [0, n - 1],
       caption: s.caption,
       codeLine: s.codeLine,
       doneAll: s.doneAll,
+      state: {
+        kind: 'array',
+        values: [...a],
+        pivot: null,
+        compare: s.compare ?? null,
+        swap: s.swap ?? null,
+        locked: s.locked ? [...s.locked].sort((x, y) => x - y) : [...locked].sort((x, y) => x - y),
+        range: [0, n - 1],
+      },
     });
   };
 
@@ -67,11 +70,16 @@ function buildSteps(input: number[]): Step[] {
 }
 
 export function bubbleScene(): Scene {
-  return sceneSchema.parse({
+  return validateScene({
     id: 'bubble',
     title: '冒泡',
     chapter: 'CH.03 / SORTING — BUBBLE',
+    section: '第三讲 · 排序与选择',
     kicker: 'BUBBLE SORT',
+    figNo: '3.1',
+    pages: [10, 11],
+    layout: 'array',
+    category: 'sort',
     summary: '相邻两两比较，把较大的元素一轮轮推到末尾；第 i 轮结束后，末尾 i + 1 个元素已经就位。',
     body: [
       '每一轮都从前往后扫描未排序区间，相邻两个元素比较、逆序就交换。扫完一轮，当前最大值一定被推到区间末尾。',
