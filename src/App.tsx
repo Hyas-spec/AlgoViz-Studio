@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Figure } from './components/Figure';
 import { SCENES, SCENE_LABEL, SCENE_ORDER, routeScene, type SceneId } from './lib/engines';
 
@@ -7,10 +7,16 @@ export default function App() {
     const q = new URLSearchParams(window.location.search).get('scene');
     return q && q in SCENES ? (q as SceneId) : 'quick';
   });
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() => {
+    const raw = new URLSearchParams(window.location.search).get('step');
+    if (!raw) return 0;
+    const parsed = Number.parseInt(raw, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  });
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [question, setQuestion] = useState('');
+  const sceneRef = useRef(sceneId);
 
   const scene = SCENES[sceneId];
   const steps = scene.steps;
@@ -29,6 +35,8 @@ export default function App() {
   }, [scene.note]);
 
   useEffect(() => {
+    if (sceneRef.current === sceneId) return;
+    sceneRef.current = sceneId;
     setIndex(0);
     setPlaying(false);
   }, [sceneId]);
@@ -75,114 +83,126 @@ export default function App() {
     <div className="app">
       <header className="mast">
         <div className="brand">ALGOVIZ</div>
-        <div className="mid">第三讲 · <b>排序与选择</b></div>
-        <div className="pg">12 — 13</div>
+        <div className="mid">{scene.section}</div>
+        <div className="pg">
+          {scene.pages[0]} — {scene.pages[1]}
+        </div>
       </header>
 
       <main className="spread">
         <section className="page left">
-          <div className="chapter">{scene.chapter}</div>
-          <div className="scene-switch" role="tablist" aria-label="选择排序算法">
-            {SCENE_ORDER.map((id) => (
-              <button
-                key={id}
-                role="tab"
-                aria-selected={id === sceneId}
-                className={id === sceneId ? 'on' : ''}
-                onClick={() => {
-                  setSceneId(id);
-                  setIndex(0);
-                }}
-              >
-                {SCENE_LABEL[id]}
-              </button>
-            ))}
-          </div>
-          <h1>{scene.title}</h1>
-          <p className="dek">{scene.summary}</p>
-
-          <div className="body">
-            {scene.body.map((paragraph, i) => (
-              <div className="bcol" key={i}>
-                <p>{paragraph}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="formula">
-            {scene.formula}
-            <span>平均 {scene.complexity.time} · 空间 {scene.complexity.space}</span>
-          </div>
-
-          <div className="code">
-            {scene.code.map((line, i) => (
-              <div key={line} className={step.codeLine === i + 1 ? 'line active' : 'line'}>
-                <span className="ln">{i + 1}</span>
-                {line}
-              </div>
-            ))}
-          </div>
-
-          <div className="facts">
-            {scene.facts.map((fact) => (
-              <div key={fact.label}>
-                {fact.label}
-                <b>{fact.value}</b>
-              </div>
-            ))}
-          </div>
-
-          <div className="margin-note">
-            <b>{noteTitle}</b>
-            {noteBody}
-          </div>
-
-          <div className="step-index">
-            <div className="si-title">
-              <span>本节步骤</span>
-              <span>{String(steps.length).padStart(2, '0')} STEPS</span>
+          <div className="left-scroll">
+            <div className="chapter">{scene.chapter}</div>
+            <div className="scene-switch" role="tablist" aria-label="选择场景">
+              {SCENE_ORDER.map((id) => (
+                <button
+                  key={id}
+                  role="tab"
+                  aria-selected={id === sceneId}
+                  className={id === sceneId ? 'on' : ''}
+                  onClick={() => {
+                    setSceneId(id);
+                    setIndex(0);
+                  }}
+                >
+                  {SCENE_LABEL[id]}
+                </button>
+              ))}
             </div>
-            {scene.outline.map((item, i) => (
-              <div className="si-row" key={item.label}>
-                <b>{String(i + 1).padStart(2, '0')}</b>
-                <span>{item.label}</span>
-                <i />
-                <em>{item.value}</em>
+            <h1>{scene.title}</h1>
+            <p className="dek">{scene.summary}</p>
+
+            <div className="body">
+              {scene.body.map((paragraph, i) => (
+                <div className="bcol" key={i}>
+                  <p>{paragraph}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="formula">
+              {scene.formula}
+              <span>
+                平均 {scene.complexity.time} · 空间 {scene.complexity.space}
+              </span>
+            </div>
+
+            <div className="code">
+              {scene.code.map((line, i) => (
+                <div key={line} className={step.codeLine === i + 1 ? 'line active' : 'line'}>
+                  <span className="ln">{i + 1}</span>
+                  {line}
+                </div>
+              ))}
+            </div>
+
+            <div className="facts">
+              {scene.facts.map((fact) => (
+                <div key={fact.label}>
+                  {fact.label}
+                  <b>{fact.value}</b>
+                </div>
+              ))}
+            </div>
+
+            <div className="margin-note">
+              <b>{noteTitle}</b>
+              {noteBody}
+            </div>
+
+            <div className="step-index">
+              <div className="si-title">
+                <span>本节步骤</span>
+                <span>{String(steps.length).padStart(2, '0')} STEPS</span>
               </div>
-            ))}
+              {scene.outline.map((item, i) => (
+                <div className="si-row" key={item.label}>
+                  <b>{String(i + 1).padStart(2, '0')}</b>
+                  <span>{item.label}</span>
+                  <i />
+                  <em>{item.value}</em>
+                </div>
+              ))}
+            </div>
+
+            <form
+              className="ask"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const next = routeScene(question);
+                if (next) {
+                  setSceneId(next);
+                  setQuestion('');
+                } else {
+                  setIndex(0);
+                  setPlaying(false);
+                  setPlaying(true);
+                }
+              }}
+            >
+              <input
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder={scene.question}
+                aria-label="追问"
+              />
+              <button type="submit" aria-label="提交追问">
+                →
+              </button>
+            </form>
           </div>
 
-          <form
-            className="ask"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const next = routeScene(question);
-              if (next) {
-                setSceneId(next);
-                setQuestion('');
-              } else {
-                setIndex(0);
-                setPlaying(false);
-                setPlaying(true);
-              }
-            }}
-          >
-            <input
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder={scene.question}
-              aria-label="追问"
-            />
-            <button type="submit" aria-label="提交追问">→</button>
-          </form>
-
-          <div className="pgl">12</div>
+          <div className="pgl">{scene.pages[0]}</div>
         </section>
 
         <section className="page right">
           <div className="fig-head">
-            <span><b>FIG. 3.2</b> — {scene.figure}</span>
-            <span className="orange">第 {safeIndex + 1} 帧 / {steps.length}</span>
+            <span>
+              <b>FIG. {scene.figNo}</b> — {scene.figure}
+            </span>
+            <span className="orange">
+              第 {safeIndex + 1} 帧 / {steps.length}
+            </span>
           </div>
 
           <div className="figure">
@@ -190,7 +210,7 @@ export default function App() {
           </div>
 
           <div className="caption">
-            <b>图 3.2</b> · {step.caption}
+            <b>图 {scene.figNo}</b> · {step.caption}
           </div>
 
           <div
@@ -252,7 +272,7 @@ export default function App() {
             <span className="hint">← → 单步 · SPACE 播放</span>
           </div>
 
-          <div className="pgr">13</div>
+          <div className="pgr">{scene.pages[1]}</div>
         </section>
       </main>
     </div>
