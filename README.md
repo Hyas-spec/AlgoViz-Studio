@@ -23,7 +23,8 @@
 - ✅ 图例：四类图版在右页图注下方直接标注「黑 = 已访问 / 蓝虚线 = 待访问 / 橙圈 = 当前 / 虚线 = 丢包」等含义
 - ✅ 可访问性与移动端：Space / Enter 不再被全局快捷键劫持；标尺可实时拖拽；0.5× 慢放；播完可从头重播；手机数组最大规模不裁切，往期抽屉可用
 - ✅ KaTeX 公式与「Scene DSL · 只读 JSON」抽屉
-- ⬜ 待接入：AI 生成场景（11/15）、导出、历史分享
+- ✅ AI 生成：非内置主题走 `/api/llm` SSE 流式生成 → JSON 解析 → Zod/业务校验 → 最多 2 轮自动修复 → 右页上屏；左侧显示流式 trace，可停止，来源标注「AI 生成 / AI 修复后」
+- ⬜ 待接入：导出、完整历史与分享（AI 场景目前是本次会话，刷新回到内置场景）
 
 ## 场景
 
@@ -67,9 +68,25 @@
 
 ![参数与板书模式](mockups/v4-quick.png)
 
-## AI 代理（可选）
+## AI 生成
 
-内置场景不需要 Key；要试模型连通性，把 `.env.local.example` 复制成 `.env.local` 并填 `LLM_API_KEY`，然后：
+页眉下方的追问输入框：命中内置路由（快排 / 层序 / BFS / 握手…）会直接切换；没有命中的主题会走 AI。
+
+- 例如「插入排序」「Prim 最小生成树」「二分查找」「UDP 为什么不可靠」。
+- 生成时页眉显示阶段，左页底部显示流式 trace、已收到字数与「停止」按钮。
+- 输出先经过 `JSON.parse`（自动剥离 ```json 围栏）→ Zod 结构校验 → 业务规则 → 质量线（array/tree/graph 至少 8 帧、最后一帧 `doneAll`、`codeLine` 范围）。
+- 校验失败会把问题清单回喂模型，最多修复 2 轮；成功后右页上方标注「AI 生成」或「AI 修复后」。
+- AI 场景暂不写往期、不写 URL、刷新回到内置场景；导出/历史会后续接入。
+
+![AI 生成的 Prim 最小生成树](mockups/v5-ai-prim.png)
+
+修复路径也真实跑过：红黑树插入第一次输出未过质量线，经过 2 轮修复后上屏，来源标注为「AI 修复后」。
+
+![AI 修复后的红黑树](mockups/v5-ai-repaired.png)
+
+## AI 代理
+
+内置场景不需要 Key；要使用 AI 生成，把 `.env.local.example` 复制成 `.env.local` 并填 `LLM_API_KEY`，然后：
 
 ```bash
 npm run dev
@@ -87,7 +104,7 @@ curl http://127.0.0.1:5173/api/llm/health
 # 1. 安装依赖（国内网络可加 --registry=https://registry.npmmirror.com）
 npm install
 
-# 2. 环境变量（可选；当前只跑内置引擎，不需要 Key）
+# 2. 环境变量（内置场景不需要；AI 生成需要 Key）
 #    Windows: copy .env.local.example .env.local
 cp .env.local.example .env.local
 
@@ -98,12 +115,13 @@ npm run dev
 #    http://127.0.0.1:5173
 ```
 
-验收：双页可见；播放/单步/标尺可用；十种场景都能播放；`<780px` 自动单列且图版在前。
-`npm test` 应全绿（79 个用例，覆盖三种排序、三种遍历、BFS/Dijkstra、TCP 握手/挥手与丢包、协议缩写与 seq/ack 字段注释、归并辅助段、参数与步数上限、四态校验器与规则路由）。
+验收：双页可见；播放/单步/标尺可用；十种场景都能播放；`<780px` 自动单列且图版在前。填了 Key 后，输入「插入排序」应能看到流式生成并上屏。
+`npm test` 应全绿（86 个用例，覆盖三种排序、三种遍历、BFS/Dijkstra、TCP 握手/挥手与丢包、协议缩写与 seq/ack 字段注释、归并辅助段、AI 解析/修复/质量线、参数与步数上限、四态校验器与规则路由）。
 
 常见问题：
 
 - 端口占用：改 `vite.config.ts` 的 `server.port`。
+- AI 返回 `missing_key`：`.env.local` 里填 `LLM_API_KEY` 后重启 dev server；不填仍可用 10 个内置场景。
 - 字体缺失：Noto Serif SC 缺失时回退宋体，不影响布局。
 - 高缩放：Edge 200% 下为 954×440 的紧凑双页，左页可独立滚动。
 - npm 源慢：加 `--registry=https://registry.npmmirror.com`。
@@ -127,6 +145,7 @@ src/
   components/     双页界面、图版渲染器（figure/*）、Formula（KaTeX）、JsonDrawer（只读 DSL）
   lib/dsl.ts      Scene DSL 与业务校验
   lib/engines/    快排 / 冒泡 / 归并 / 树遍历 / BFS / Dijkstra / TCP 握手与挥手
+  lib/ai/         prompt（system + few-shot）、client（SSE）、generate（校验/修复）
   lib/describe.ts 图版状态的自然语言描述（读屏与 aria-label）
 ```
 
