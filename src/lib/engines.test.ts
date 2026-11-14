@@ -275,16 +275,25 @@ describe('network scenes and parameters', () => {
     }
   });
 
-  it('explains protocol abbreviations for beginners', () => {
+  it('explains protocol abbreviations and seq/ack fields for beginners', () => {
     const handshake = createScene('handshake');
     const handshakeTerms = (handshake.glossary ?? []).map((item) => item.term);
-    expect(handshakeTerms).toEqual(expect.arrayContaining(['SYN', 'ACK', 'SYN+ACK', 'ESTABLISHED', 'RTT']));
-    expect(handshake.glossary).toHaveLength(8);
+    expect(handshakeTerms).toEqual(
+      expect.arrayContaining(['SYN', 'ACK', 'SYN+ACK', 'ESTABLISHED', 'RTT', 'seq 字段', 'ack 字段']),
+    );
+    expect(handshake.glossary).toHaveLength(10);
 
     const wave = createScene('wave');
     const waveTerms = (wave.glossary ?? []).map((item) => item.term);
-    expect(waveTerms).toEqual(expect.arrayContaining(['FIN', 'CLOSE-WAIT', 'TIME-WAIT', '2MSL']));
-    expect(wave.glossary).toHaveLength(8);
+    expect(waveTerms).toEqual(
+      expect.arrayContaining(['FIN', 'CLOSE-WAIT', 'TIME-WAIT', '2MSL', 'seq 字段', 'ack 字段']),
+    );
+    expect(wave.glossary).toHaveLength(10);
+
+    const seq = handshake.glossary?.find((item) => item.term === 'seq 字段');
+    const ack = handshake.glossary?.find((item) => item.term === 'ack 字段');
+    expect(seq?.text).toContain('发送序号');
+    expect(ack?.text).toContain('确认号');
 
     for (const item of [...(handshake.glossary ?? []), ...(wave.glossary ?? [])]) {
       expect(item.text.length).toBeGreaterThan(3);

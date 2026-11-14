@@ -141,7 +141,7 @@ export const sceneSchema = z.object({
   /** 缩写注释：给零基础读者的术语表，协议 / 网络场景用。 */
   glossary: z
     .array(z.object({ term: z.string().min(1).max(16), text: z.string().min(1).max(60) }))
-    .max(8)
+    .max(10)
     .optional(),
   outline: z.array(outlineItemSchema).length(4),
   steps: z.array(stepSchema).min(1).max(120),

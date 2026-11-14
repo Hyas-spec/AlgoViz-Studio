@@ -32,6 +32,8 @@ const HANDSHAKE_GLOSSARY = [
   { term: 'SYN', text: 'Synchronize：请求建连，并报出初始序号' },
   { term: 'ACK', text: 'Acknowledgement：确认「你发的我收到了」' },
   { term: 'SYN+ACK', text: '同时确认对方、报出自己的序号' },
+  { term: 'seq 字段', text: '发送序号：本次发送从第几号字节开始，初始值由发送方自选' },
+  { term: 'ack 字段', text: '确认号：已收到对方的序号，下一个期望它 +1' },
   { term: 'ESTABLISHED', text: '连接已建立，可以正常收发数据' },
   { term: 'LISTEN', text: '服务器在端口上等待连接' },
   { term: 'SYN-SENT', text: '客户端已发 SYN，等对方回复' },
@@ -42,6 +44,8 @@ const HANDSHAKE_GLOSSARY = [
 const WAVE_GLOSSARY = [
   { term: 'FIN', text: 'Finish：我没有数据要发了，请求关闭' },
   { term: 'ACK', text: 'Acknowledgement：确认「你发的我收到了」' },
+  { term: 'seq 字段', text: '发送序号：本次发送从第几号字节开始，初始值由发送方自选' },
+  { term: 'ack 字段', text: '确认号：已收到对方的序号，下一个期望它 +1' },
   { term: 'CLOSE-WAIT', text: '收到对方 FIN，等自己数据发完' },
   { term: 'LAST-ACK', text: '已发 FIN，等对方最后一个 ACK' },
   { term: 'TIME-WAIT', text: '主动关闭方等 2MSL 再真正关闭' },

@@ -295,8 +295,8 @@ export default function App() {
             </div>
 
             {scene.glossary && scene.glossary.length > 0 ? (
-              <div className="glossary" aria-label="缩写注释">
-                <div className="glossary-title">缩写注释</div>
+              <div className="glossary" aria-label="缩写与字段">
+                <div className="glossary-title">缩写与字段</div>
                 <dl>
                   {scene.glossary.map((item) => (
                     <div className="glossary-item" key={item.term}>
