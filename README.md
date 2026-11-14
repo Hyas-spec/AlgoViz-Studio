@@ -142,7 +142,7 @@ npm test           # vitest run
 ## 目录
 
 ```
-docs/             设计书、操作流程、交付台账、视频脚本、技术文档大纲、Prompt 记录
+docs/             设计书、操作流程、交付台账、视频脚本/配音台词、技术文档大纲、Prompt 记录
   prompts/        文字版 Prompt 链（00 界面选型、01 脚手架与双页、02 引擎与三种排序）
 mockups/          视觉基线、场景截图与兼容性截图
 src/
@@ -163,5 +163,6 @@ src/
 - [Prompt 03 · AI 生成与修复（文字稿，截图待补）](docs/prompts/03-AI生成与修复.md)
 - [交付台账 · 当前完成度与待办](docs/02-交付台账.md)
 - [视频脚本 · 6 分钟版](docs/03-视频脚本.md)
+- [配音台词 · 逐字稿](docs/05-配音台词.md)
 - [技术文档大纲 · ≤30 页](docs/04-技术文档大纲.md)
 - 视觉基线：[concept-spread.png](mockups/concept-spread.png)
