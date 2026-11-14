@@ -8,12 +8,14 @@ export function drawArray(
   H: number,
   state: ArrayState,
   values: number[],
+  auxMix = state.aux ? 1 : 0,
 ): void {
   const n = values.length;
   const padX = 26;
   const padTop = 48;
   const auxiliary = state.aux ?? null;
-  const padBottom = auxiliary ? 82 : 44;
+  // auxMix 在 0..1 之间过渡：进入归并时辅助区展开，最后一帧收起，柱高不跳变。
+  const padBottom = 44 + 38 * Math.min(1, Math.max(0, auxMix));
   // 大数组在窄屏上不能继续用 10px 柱 + 16px 间距，否则右侧会被裁掉。
   const gap = n > 12 ? Math.max(4, Math.min(16, (W - padX * 2) / (n * 4))) : 16;
   const barW = Math.max(4, (W - padX * 2 - gap * (n - 1)) / n);
@@ -113,6 +115,7 @@ export function drawArray(
     };
 
     ctx.save();
+    ctx.globalAlpha = Math.min(1, Math.max(0, auxMix));
     drawRow('左段', left, i, H - 50);
     drawRow('右段', right, j, H - 31);
 

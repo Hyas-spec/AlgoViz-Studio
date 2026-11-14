@@ -46,7 +46,10 @@ export function Figure({ step }: { step: Step }) {
         const start = from[i] ?? value;
         return start + (value - start) * eased;
       });
-      drawArray(ctx, W, H, state, values);
+      const prevAux = prev.kind === 'array' && prev.aux ? 1 : 0;
+      const nextAux = state.aux ? 1 : 0;
+      const auxMix = prevAux + (nextAux - prevAux) * eased;
+      drawArray(ctx, W, H, state, values, auxMix);
       return;
     }
 

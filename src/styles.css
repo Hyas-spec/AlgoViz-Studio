@@ -777,6 +777,50 @@ button.si-row:hover i { border-bottom-color: var(--blue); }
 .focus-toggle:hover { color: var(--blue); border-color: var(--blue); }
 .focus-toggle[aria-pressed='true'] { color: var(--blue); border-color: var(--blue); }
 
+.type-toggle {
+  margin-left: 14px;
+  border: 1px solid var(--rule);
+  background: none;
+  padding: 3px 8px;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.type-toggle:hover { color: var(--blue); border-color: var(--blue); }
+.type-toggle[aria-pressed='true'] { color: var(--blue); border-color: var(--blue); }
+
+/* 投影模式：把讲义正文、公式、代码与图注整体放大一档；允许左页滚动。 */
+.app.big-type .body {
+  grid-template-columns: 1fr;
+  gap: 0;
+  font-size: clamp(13.5px, 0.95vw, 15.5px);
+  line-height: 1.9;
+}
+.app.big-type .dek { font-size: clamp(13px, 1vw, 16px); line-height: 1.75; }
+.app.big-type .formula { font-size: clamp(18px, 1.35vw, 23px); }
+.app.big-type .code { font-size: clamp(10.5px, 0.78vw, 12px); line-height: 1.8; }
+.app.big-type .code button.line { white-space: pre-wrap; overflow-wrap: anywhere; }
+.app.big-type .facts { font-size: clamp(10px, 0.7vw, 11.5px); }
+.app.big-type .glossary-title { font-size: 9px; }
+.app.big-type .glossary dt { font-size: clamp(9.5px, 0.68vw, 11px); }
+.app.big-type .glossary dd { font-size: clamp(10px, 0.72vw, 12px); line-height: 1.6; }
+.app.big-type .params-title { font-size: 9px; }
+.app.big-type .param-label { font-size: clamp(10.5px, 0.72vw, 12px); }
+.app.big-type .margin-note { font-size: clamp(12px, 0.85vw, 14px); line-height: 1.85; }
+.app.big-type .si-title { font-size: 9px; }
+.app.big-type .si-row { font-size: clamp(10px, 0.7vw, 11.5px); }
+.app.big-type .si-row b,
+.app.big-type .si-row em { font-size: clamp(9px, 0.62vw, 10px); }
+.app.big-type .step-list summary { font-size: 9px; }
+.app.big-type .step-list li button { font-size: clamp(10px, 0.7vw, 11.5px); }
+.app.big-type .ask input { font-size: clamp(13px, 0.9vw, 14.5px); }
+.app.big-type .caption { font-size: clamp(12px, 0.85vw, 14px); }
+.app.big-type .figure-key { font-size: clamp(9.5px, 0.7vw, 11px); }
+.app.big-type .metrics { font-size: clamp(9.5px, 0.7vw, 11px); }
+.app.big-type .recent-panel button { font-size: 11px; }
+
 .app.focus .left { display: none; }
 .app.focus .spread { grid-template-columns: 1fr; }
 .app.focus .right {

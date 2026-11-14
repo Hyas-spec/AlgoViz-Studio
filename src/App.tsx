@@ -56,6 +56,7 @@ export default function App() {
   const [question, setQuestion] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const [focus, setFocus] = useState(false);
+  const [bigType, setBigType] = useState(false);
   const [recent, setRecent] = useState<RecentEntry[]>(() => loadRecent());
   const [recentOpen, setRecentOpen] = useState(false);
 
@@ -262,6 +263,8 @@ export default function App() {
         goTo(last);
       } else if (e.key === 'f' || e.key === 'F') {
         setFocus((value) => !value);
+      } else if (e.key === 't' || e.key === 'T') {
+        setBigType((value) => !value);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -269,10 +272,20 @@ export default function App() {
   }, [last, safeIndex]);
 
   return (
-    <div className={focus ? 'app focus' : 'app'}>
+    <div className={`app${focus ? ' focus' : ''}${bigType ? ' big-type' : ''}`}>
       <header className="mast">
         <div className="brand">ALGOVIZ</div>
         <div className="mid">{scene.section}</div>
+        <button
+          className="type-toggle"
+          type="button"
+          aria-pressed={bigType}
+          aria-label={bigType ? '恢复默认字号' : '放大讲义字号'}
+          title="放大讲义正文，适合投影（T）"
+          onClick={() => setBigType((value) => !value)}
+        >
+          {bigType ? '字−' : '字+'}
+        </button>
         <button
           className="focus-toggle"
           type="button"
