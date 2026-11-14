@@ -165,4 +165,5 @@ src/
 - [视频脚本 · 6 分钟版](docs/03-视频脚本.md)
 - [配音台词 · 逐字稿](docs/05-配音台词.md)
 - [技术文档大纲 · ≤30 页](docs/04-技术文档大纲.md)
+- [技术文档封面 · PDF（何丹丹 / 新余学院 / B 组 · 个人）](docs/tech-doc/AlgoViz-技术文档-封面.pdf)
 - 视觉基线：[concept-spread.png](mockups/concept-spread.png)
