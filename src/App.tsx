@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Figure } from './components/Figure';
 import { Formula } from './components/Formula';
 import { JsonDrawer } from './components/JsonDrawer';
@@ -15,6 +15,9 @@ import {
 import { loadRecent, paramsSummary, saveRecent, timeAgo, type RecentEntry } from './lib/recent';
 
 type Params = Record<string, number>;
+
+/** 投影字号档位；0 为默认。 */
+const TYPE_SCALES = [1, 1.12, 1.26, 1.42] as const;
 
 /** 图例：四类图版各一行，解释颜色/线型/小字的含义。 */
 const LEGENDS = {
@@ -56,7 +59,7 @@ export default function App() {
   const [question, setQuestion] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const [focus, setFocus] = useState(false);
-  const [bigType, setBigType] = useState(false);
+  const [typeLevel, setTypeLevel] = useState(0);
   const [recent, setRecent] = useState<RecentEntry[]>(() => loadRecent());
   const [recentOpen, setRecentOpen] = useState(false);
 
@@ -75,6 +78,10 @@ export default function App() {
   const progress = last > 0 ? safeIndex / last : 0;
   const sizeParam = scene.params.find((param) => param.key === 'size');
   const codeLines = useMemo(() => new Set(steps.map((item) => item.codeLine)), [steps]);
+  const typeScale = TYPE_SCALES[typeLevel] ?? 1;
+  const bigType = typeLevel > 0;
+  /** 画布只跟随约七成，避免节点/边权在窄屏上互相压住。 */
+  const canvasScale = 1 + (typeScale - 1) * 0.7;
 
   const noteTitle = useMemo(() => {
     const i = scene.note.indexOf('？');
@@ -263,8 +270,10 @@ export default function App() {
         goTo(last);
       } else if (e.key === 'f' || e.key === 'F') {
         setFocus((value) => !value);
-      } else if (e.key === 't' || e.key === 'T') {
-        setBigType((value) => !value);
+      } else if (e.key.toLowerCase() === 't') {
+        setTypeLevel((value) =>
+          e.shiftKey ? Math.max(0, value - 1) : Math.min(TYPE_SCALES.length - 1, value + 1),
+        );
       }
     };
     window.addEventListener('keydown', onKey);
@@ -272,20 +281,38 @@ export default function App() {
   }, [last, safeIndex]);
 
   return (
-    <div className={`app${focus ? ' focus' : ''}${bigType ? ' big-type' : ''}`}>
+    <div
+      className={`app${focus ? ' focus' : ''}${bigType ? ' big-type' : ''}`}
+      style={bigType ? ({ '--type-scale': typeScale } as CSSProperties) : undefined}
+    >
       <header className="mast">
         <div className="brand">ALGOVIZ</div>
         <div className="mid">{scene.section}</div>
-        <button
-          className="type-toggle"
-          type="button"
-          aria-pressed={bigType}
-          aria-label={bigType ? '恢复默认字号' : '放大讲义字号'}
-          title="放大讲义正文，适合投影（T）"
-          onClick={() => setBigType((value) => !value)}
-        >
-          {bigType ? '字−' : '字+'}
-        </button>
+        <div className="type-controls" role="group" aria-label="投影字号">
+          <button
+            className="type-step"
+            type="button"
+            aria-label="缩小讲义字号"
+            title="缩小（Shift + T）"
+            disabled={typeLevel === 0}
+            onClick={() => setTypeLevel((value) => Math.max(0, value - 1))}
+          >
+            A−
+          </button>
+          <span className="type-value" aria-live="polite">
+            {Math.round(typeScale * 100)}%
+          </span>
+          <button
+            className="type-step"
+            type="button"
+            aria-label="放大讲义字号"
+            title="放大（T）"
+            disabled={typeLevel === TYPE_SCALES.length - 1}
+            onClick={() => setTypeLevel((value) => Math.min(TYPE_SCALES.length - 1, value + 1))}
+          >
+            A+
+          </button>
+        </div>
         <button
           className="focus-toggle"
           type="button"
@@ -555,7 +582,7 @@ export default function App() {
           </div>
 
           <div className="figure">
-            <Figure step={step} />
+            <Figure step={step} typeScale={canvasScale} />
           </div>
 
           <div className="caption">

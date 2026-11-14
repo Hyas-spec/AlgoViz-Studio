@@ -86,8 +86,10 @@ export function drawGraph(
   state: GraphState,
   prev: GraphState,
   k: number,
+  fontScale = 1,
 ): void {
   const layout = layoutGraph(state.nodes, W, H);
+  const fs = Math.min(fontScale, W < 520 ? 1.18 : 1.35);
   const visited = new Set(state.visited ?? []);
   const previous = new Set(prev.visited ?? []);
   const frontier = new Set(state.frontier ?? []);
@@ -139,12 +141,13 @@ export function drawGraph(
     const c = controlPoint(from, to, layout.cx, layout.cy);
     const at = quadAt(from, c, to, 0.33);
     const text = String(edge.weight);
-    ctx.font = `600 9.5px ${FONT_MONO}`;
+    ctx.font = `600 ${9.5 * fs}px ${FONT_MONO}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const width = ctx.measureText(text).width;
     ctx.fillStyle = PAPER;
-    ctx.fillRect(at.x - width / 2 - 3, at.y - 7, width + 6, 14);
+    const labelH = 14 * fs;
+    ctx.fillRect(at.x - width / 2 - 3, at.y - labelH / 2, width + 6, labelH);
     ctx.fillStyle = 'rgba(21,21,21,.72)';
     ctx.fillText(text, at.x, at.y + 0.5);
   });
@@ -197,17 +200,18 @@ export function drawGraph(
     }
 
     ctx.fillStyle = isVisited ? PAPER : INK;
-    ctx.font = `600 ${Math.round(layout.radius * 1.02)}px ${FONT_MONO}`;
+    const labelPx = Math.min(layout.radius * 1.35, layout.radius * 1.02 * fs);
+    ctx.font = `600 ${Math.round(labelPx)}px ${FONT_MONO}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(node.label, placed.x, placed.y + 0.5);
 
     const dist = distOf.get(node.id);
     if (dist !== undefined) {
-      ctx.font = `9px ${FONT_MONO}`;
+      ctx.font = `${9 * fs}px ${FONT_MONO}`;
       const width = ctx.measureText(dist).width;
       ctx.fillStyle = PAPER;
-      ctx.fillRect(placed.x - width / 2 - 3, placed.y + layout.radius + 2, width + 6, 12);
+      ctx.fillRect(placed.x - width / 2 - 3, placed.y + layout.radius + 2, width + 6, 12 * fs);
       ctx.fillStyle = isVisited ? INK : isFrontier ? BLUE : FAINT;
       ctx.fillText(dist, placed.x, placed.y + layout.radius + 8.5);
     }
@@ -219,5 +223,5 @@ export function drawGraph(
   const items = (state.frontier ?? []).map(
     (id) => state.nodes.find((node) => node.id === id)?.label ?? id,
   );
-  drawStrip(ctx, W, H, items, state.frontierLabel ?? '队列', 0);
+  drawStrip(ctx, W, H, items, state.frontierLabel ?? '队列', 0, fs);
 }

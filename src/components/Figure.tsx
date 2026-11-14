@@ -12,7 +12,7 @@ function transitionMs(): number {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 120 : 260;
 }
 
-export function Figure({ step }: { step: Step }) {
+export function Figure({ step, typeScale = 1 }: { step: Step; typeScale?: number }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<StepState>(step.state);
@@ -49,21 +49,21 @@ export function Figure({ step }: { step: Step }) {
       const prevAux = prev.kind === 'array' && prev.aux ? 1 : 0;
       const nextAux = state.aux ? 1 : 0;
       const auxMix = prevAux + (nextAux - prevAux) * eased;
-      drawArray(ctx, W, H, state, values, auxMix);
+      drawArray(ctx, W, H, state, values, auxMix, typeScale, prev.kind === 'array' ? prev.aux : undefined);
       return;
     }
 
     if (state.kind === 'tree') {
-      drawTree(ctx, W, H, state, prev.kind === 'tree' ? prev : state, eased);
+      drawTree(ctx, W, H, state, prev.kind === 'tree' ? prev : state, eased, typeScale);
       return;
     }
 
     if (state.kind === 'graph') {
-      drawGraph(ctx, W, H, state, prev.kind === 'graph' ? prev : state, eased);
+      drawGraph(ctx, W, H, state, prev.kind === 'graph' ? prev : state, eased, typeScale);
       return;
     }
 
-    drawSequence(ctx, W, H, state, prev.kind === 'sequence' ? prev : state, eased);
+    drawSequence(ctx, W, H, state, prev.kind === 'sequence' ? prev : state, eased, typeScale);
   };
 
   const paintRef = useRef(paint);
@@ -96,7 +96,7 @@ export function Figure({ step }: { step: Step }) {
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [step]);
+  }, [step, typeScale]);
 
   return (
     <div ref={wrapRef} className="figure-canvas-wrap">

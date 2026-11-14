@@ -36,7 +36,9 @@ export function drawSequence(
   state: SequenceState,
   prev: SequenceState,
   k: number,
+  fontScale = 1,
 ): void {
+  const fs = Math.min(fontScale, W < 500 ? 1.15 : 1.4);
   const lanes = state.lanes;
   const count = Math.max(1, lanes.length);
   const margin = Math.max(46, Math.min(W * 0.14, W / 2 - 70));
@@ -66,7 +68,7 @@ export function drawSequence(
   // 泳道标题
   lanes.forEach((lane) => {
     const x = xOf.get(lane.id) ?? 0;
-    ctx.font = `600 10.5px ${FONT_MONO}`;
+    ctx.font = `600 ${10.5 * fs}px ${FONT_MONO}`;
     const width = headerWidth(lane.label, ctx, spacing);
     ctx.fillStyle = PAPER;
     ctx.fillRect(x - width / 2, headerY - HEADER_H / 2, width, HEADER_H);
@@ -85,7 +87,7 @@ export function drawSequence(
 
   if (messages.length === 0) {
     ctx.fillStyle = FAINT;
-    ctx.font = `10px ${FONT_MONO}`;
+    ctx.font = `${10 * fs}px ${FONT_MONO}`;
     ctx.textAlign = 'center';
     ctx.fillText('还没有报文，等待发起方', W / 2, (lineTop + lineBottom) / 2);
   }
@@ -125,7 +127,7 @@ export function drawSequence(
       ctx.lineTo(x1 + 8, y);
       ctx.stroke();
       ctx.fillStyle = active ? ORANGE : INK;
-      ctx.font = `9.5px ${FONT_MONO}`;
+      ctx.font = `${9.5 * fs}px ${FONT_MONO}`;
       ctx.textAlign = 'left';
       ctx.fillText(message.label, x1 + 40, y);
       ctx.restore();
@@ -161,13 +163,13 @@ export function drawSequence(
     }
 
     ctx.fillStyle = active || lost ? ORANGE : INK;
-    ctx.font = `${active ? 600 : 400} 10px ${FONT_MONO}`;
+    ctx.font = `${active ? 600 : 400} ${10 * fs}px ${FONT_MONO}`;
     ctx.textAlign = 'center';
     ctx.fillText(message.label, (start + end) / 2, y - 9);
 
     if (lost) {
       ctx.fillStyle = ORANGE;
-      ctx.font = `8px ${FONT_MONO}`;
+      ctx.font = `${8 * fs}px ${FONT_MONO}`;
       ctx.fillText('丢失', end, y + 12);
     }
     ctx.restore();
@@ -186,7 +188,7 @@ export function drawSequence(
     ctx.fillStyle = PAPER;
     ctx.fillRect(x - 45, H - 36, 90, 16);
     ctx.fillStyle = MUTED;
-    ctx.font = `9px ${FONT_MONO}`;
+    ctx.font = `${9 * fs}px ${FONT_MONO}`;
     ctx.textAlign = 'center';
     ctx.fillText(note.text, x, H - 24);
   });

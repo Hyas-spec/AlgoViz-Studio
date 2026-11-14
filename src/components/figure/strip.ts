@@ -11,15 +11,17 @@ export function drawStrip(
   items: string[],
   caption: string,
   liveIndex: number,
+  fontScale = 1,
 ): void {
   const y = H - 34;
-  const boxH = 20;
+  const fs = Math.min(fontScale, 1.35);
+  const boxH = 20 * Math.min(1.25, fs);
 
   ctx.save();
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
   ctx.fillStyle = MUTED;
-  ctx.font = `9px ${FONT_MONO}`;
+  ctx.font = `${9 * fs}px ${FONT_MONO}`;
   ctx.fillText(caption, 20, y);
 
   let x = 20 + ctx.measureText(caption).width + 10;
@@ -39,11 +41,12 @@ export function drawStrip(
 
   if (items.length > shown.length && x < W - 46) {
     ctx.fillStyle = FAINT;
-    ctx.font = `9px ${FONT_MONO}`;
+    ctx.font = `${9 * fs}px ${FONT_MONO}`;
     ctx.fillText(`+${items.length - shown.length}`, x, y);
   }
   if (items.length === 0) {
     ctx.fillStyle = FAINT;
+    ctx.font = `${9 * fs}px ${FONT_MONO}`;
     ctx.fillText('空', x, y);
   }
   ctx.restore();

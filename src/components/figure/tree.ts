@@ -76,6 +76,7 @@ export function drawTree(
   state: TreeState,
   prev: TreeState,
   k: number,
+  fontScale = 1,
 ): void {
   const layout = layoutTree(state.nodes, W, H);
   const visited = new Set(state.order ?? []);
@@ -136,7 +137,8 @@ export function drawTree(
     }
 
     ctx.fillStyle = isVisited ? PAPER : INK;
-    ctx.font = `600 ${Math.round(layout.radius * 1.02)}px ${FONT_MONO}`;
+    const labelPx = Math.min(layout.radius * 1.35, layout.radius * 1.02 * fontScale);
+    ctx.font = `600 ${Math.round(labelPx)}px ${FONT_MONO}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(node.label, placed.x, placed.y + 0.5);
@@ -147,5 +149,5 @@ export function drawTree(
   const items = (state.frontier ?? []).map(
     (id) => state.nodes.find((candidate) => candidate.id === id)?.label ?? id,
   );
-  drawStrip(ctx, W, H, items, label, label === '队列' ? 0 : items.length - 1);
+  drawStrip(ctx, W, H, items, label, label === '队列' ? 0 : items.length - 1, fontScale);
 }

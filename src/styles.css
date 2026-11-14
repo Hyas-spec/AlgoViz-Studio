@@ -777,49 +777,80 @@ button.si-row:hover i { border-bottom-color: var(--blue); }
 .focus-toggle:hover { color: var(--blue); border-color: var(--blue); }
 .focus-toggle[aria-pressed='true'] { color: var(--blue); border-color: var(--blue); }
 
-.type-toggle {
+.type-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   margin-left: 14px;
+}
+.type-step {
+  min-width: 22px;
   border: 1px solid var(--rule);
   background: none;
-  padding: 3px 8px;
+  padding: 2px 5px;
   font-family: var(--mono);
-  font-size: 8px;
-  letter-spacing: 1px;
+  font-size: 9px;
+  line-height: 1;
   color: var(--muted);
   cursor: pointer;
 }
-.type-toggle:hover { color: var(--blue); border-color: var(--blue); }
-.type-toggle[aria-pressed='true'] { color: var(--blue); border-color: var(--blue); }
+.type-step:hover:not(:disabled) { color: var(--blue); border-color: var(--blue); }
+.type-step:disabled { opacity: 0.3; cursor: default; }
+.type-value {
+  min-width: 34px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  color: var(--faint);
+}
 
-/* 投影模式：把讲义正文、公式、代码与图注整体放大一档；允许左页滚动。 */
+/* 投影模式：讲义与图注按档位放大；允许左页滚动。 */
+.app.big-type { --type-scale: 1.12; }
 .app.big-type .body {
   grid-template-columns: 1fr;
   gap: 0;
-  font-size: clamp(13.5px, 0.95vw, 15.5px);
+  font-size: calc(clamp(10.5px, 0.78vw, 12px) * var(--type-scale));
   line-height: 1.9;
 }
-.app.big-type .dek { font-size: clamp(13px, 1vw, 16px); line-height: 1.75; }
-.app.big-type .formula { font-size: clamp(18px, 1.35vw, 23px); }
-.app.big-type .code { font-size: clamp(10.5px, 0.78vw, 12px); line-height: 1.8; }
+.app.big-type .dek {
+  font-size: calc(clamp(11.5px, 0.9vw, 14px) * var(--type-scale));
+  line-height: 1.75;
+}
+.app.big-type .formula { font-size: calc(clamp(14px, 1.1vw, 17px) * var(--type-scale)); }
+.app.big-type .code { font-size: calc(clamp(8.2px, 0.6vw, 9.5px) * var(--type-scale)); line-height: 1.8; }
 .app.big-type .code button.line { white-space: pre-wrap; overflow-wrap: anywhere; }
-.app.big-type .facts { font-size: clamp(10px, 0.7vw, 11.5px); }
-.app.big-type .glossary-title { font-size: 9px; }
-.app.big-type .glossary dt { font-size: clamp(9.5px, 0.68vw, 11px); }
-.app.big-type .glossary dd { font-size: clamp(10px, 0.72vw, 12px); line-height: 1.6; }
-.app.big-type .params-title { font-size: 9px; }
-.app.big-type .param-label { font-size: clamp(10.5px, 0.72vw, 12px); }
-.app.big-type .margin-note { font-size: clamp(12px, 0.85vw, 14px); line-height: 1.85; }
-.app.big-type .si-title { font-size: 9px; }
-.app.big-type .si-row { font-size: clamp(10px, 0.7vw, 11.5px); }
+.app.big-type .code .ln { width: calc(15px * var(--type-scale)); }
+.app.big-type .facts { font-size: calc(clamp(8px, 0.55vw, 9px) * var(--type-scale)); }
+.app.big-type .glossary-title { font-size: calc(8px * var(--type-scale)); }
+.app.big-type .glossary-item { grid-template-columns: calc(68px * var(--type-scale)) 1fr; }
+.app.big-type .glossary dt { font-size: calc(clamp(8px, 0.55vw, 9px) * var(--type-scale)); }
+.app.big-type .glossary dd { font-size: calc(clamp(8.5px, 0.6vw, 9.5px) * var(--type-scale)); line-height: 1.6; }
+.app.big-type .params-title { font-size: calc(8px * var(--type-scale)); }
+.app.big-type .param-label {
+  width: calc(56px * var(--type-scale));
+  font-size: calc(clamp(9.5px, 0.66vw, 10.5px) * var(--type-scale));
+}
+.app.big-type .margin-note {
+  font-size: calc(clamp(9.5px, 0.68vw, 10.5px) * var(--type-scale));
+  line-height: 1.85;
+}
+.app.big-type .si-title { font-size: calc(clamp(8px, 0.52vw, 8.5px) * var(--type-scale)); }
+.app.big-type .si-row { font-size: calc(clamp(9px, 0.66vw, 10.5px) * var(--type-scale)); }
 .app.big-type .si-row b,
-.app.big-type .si-row em { font-size: clamp(9px, 0.62vw, 10px); }
-.app.big-type .step-list summary { font-size: 9px; }
-.app.big-type .step-list li button { font-size: clamp(10px, 0.7vw, 11.5px); }
-.app.big-type .ask input { font-size: clamp(13px, 0.9vw, 14.5px); }
-.app.big-type .caption { font-size: clamp(12px, 0.85vw, 14px); }
-.app.big-type .figure-key { font-size: clamp(9.5px, 0.7vw, 11px); }
-.app.big-type .metrics { font-size: clamp(9.5px, 0.7vw, 11px); }
-.app.big-type .recent-panel button { font-size: 11px; }
+.app.big-type .si-row em { font-size: calc(clamp(8px, 0.56vw, 9px) * var(--type-scale)); }
+.app.big-type .step-list summary { font-size: calc(8px * var(--type-scale)); }
+.app.big-type .step-list li button { font-size: calc(9px * var(--type-scale)); }
+.app.big-type .ask input { font-size: calc(clamp(11px, 0.78vw, 12px) * var(--type-scale)); }
+.app.big-type .caption { font-size: calc(clamp(10px, 0.72vw, 11px) * var(--type-scale)); }
+.app.big-type .figure-key { font-size: calc(clamp(8px, 0.55vw, 8.5px) * var(--type-scale)); }
+.app.big-type .metrics { font-size: calc(8.5px * var(--type-scale)); }
+.app.big-type .recent-panel button { font-size: calc(9.5px * var(--type-scale)); }
+
+@media (max-width: 560px) {
+  .type-controls { margin-left: 8px; gap: 2px; }
+  .type-value { min-width: 28px; font-size: 7px; }
+}
 
 .app.focus .left { display: none; }
 .app.focus .spread { grid-template-columns: 1fr; }

@@ -9,11 +9,15 @@ export function drawArray(
   state: ArrayState,
   values: number[],
   auxMix = state.aux ? 1 : 0,
+  fontScale = 1,
+  prevAux?: ArrayState['aux'],
 ): void {
   const n = values.length;
   const padX = 26;
   const padTop = 48;
-  const auxiliary = state.aux ?? null;
+  const auxiliary = state.aux ?? prevAux ?? null;
+  // 大数组在窄屏上不能继续放大太多，否则值标签会互相压住。
+  const fs = n > 12 ? Math.min(fontScale, 1.18) : fontScale;
   // auxMix 在 0..1 之间过渡：进入归并时辅助区展开，最后一帧收起，柱高不跳变。
   const padBottom = 44 + 38 * Math.min(1, Math.max(0, auxMix));
   // 大数组在窄屏上不能继续用 10px 柱 + 16px 间距，否则右侧会被裁掉。
@@ -34,7 +38,7 @@ export function drawArray(
   ctx.lineTo(x2, y);
   ctx.stroke();
   ctx.fillStyle = BLUE;
-  ctx.font = `9px ${FONT_MONO}`;
+  ctx.font = `${9 * fs}px ${FONT_MONO}`;
   ctx.textAlign = 'left';
   ctx.fillText(`[${l}..${r}]`, x1, y - 5);
 
@@ -68,12 +72,12 @@ export function drawArray(
     }
 
     ctx.fillStyle = isPivot ? ORANGE : isCompare ? BLUE : MUTED;
-    ctx.font = `10px ${FONT_MONO}`;
+    ctx.font = `${10 * fs}px ${FONT_MONO}`;
     ctx.textAlign = 'center';
     ctx.fillText(String(state.values[i] ?? v), x + barW / 2, top - 8);
 
     ctx.fillStyle = FAINT;
-    ctx.font = `8px ${FONT_MONO}`;
+    ctx.font = `${8 * fs}px ${FONT_MONO}`;
     ctx.fillText(String(i), x + barW / 2, baseY + 16);
   });
 
@@ -87,7 +91,7 @@ export function drawArray(
     const { left, right, i, j, target } = auxiliary;
     const cell = Math.max(14, Math.min(26, (W - 54) / Math.max(left.length, right.length, 1)));
     const drawRow = (label: string, items: number[], pointer: number, y: number) => {
-      ctx.font = `8px ${FONT_MONO}`;
+      ctx.font = `${8 * fs}px ${FONT_MONO}`;
       ctx.fillStyle = MUTED;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
