@@ -434,9 +434,15 @@ describe('rule router', () => {
 
   it('routes graph and network keywords', () => {
     expect(routeScene('图的 BFS 遍历')).toBe('bfs');
+    expect(routeScene('图的广度优先遍历')).toBe('bfs');
     expect(routeScene('Dijkstra 最短路怎么算')).toBe('dijkstra');
     expect(routeScene('TCP 三次握手')).toBe('handshake');
     expect(routeScene('四次挥手为什么等 2MSL')).toBe('wave');
+  });
+
+  it('keeps tree breadth-first prompts on level order', () => {
+    expect(routeScene('二叉树的广度优先遍历')).toBe('levelorder');
+    expect(routeScene('层序')).toBe('levelorder');
   });
 
   it('leaves long-tail topics to the LLM', () => {

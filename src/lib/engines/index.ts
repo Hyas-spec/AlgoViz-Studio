@@ -87,6 +87,7 @@ export function routeScene(prompt: string): SceneId | null {
   if (/握手|SYN|三次/i.test(prompt)) return 'handshake';
   if (/挥手|四次|FIN|TIME-WAIT|TIME_WAIT/i.test(prompt)) return 'wave';
   if (/dijkstra|最短路|单源|松弛/i.test(prompt)) return 'dijkstra';
+  if (/广度优先/.test(prompt) && !/二叉树|树|层序/.test(prompt)) return 'bfs';
   if (/图|顶点|邻接|无向|有向/.test(prompt) && /BFS|广度/i.test(prompt)) return 'bfs';
   if (/层序|层次遍历|BFS/i.test(prompt)) return 'levelorder';
   if (/前序|先序/.test(prompt)) return 'preorder';
