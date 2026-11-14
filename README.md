@@ -39,9 +39,13 @@
 在页眉下方按「排序 / 树 / 图 / 协议」四组切换，或访问 `/?scene=quick|bubble|merge|levelorder|preorder|inorder|bfs|dijkstra|handshake|wave`。
 参数也能写进地址：`/?scene=quick&size=8&pivot=1`、`/?scene=levelorder&levels=3`、`/?scene=handshake&loss=1`；`&step=12` 跳到第 13 帧。
 
-| 图：Dijkstra 最短路 | 时序：TCP 三次握手 |
-|---|---|
-| ![Dijkstra](mockups/v5-dijkstra.png) | ![TCP 三次握手](mockups/v5-handshake.png) |
+**图版：Dijkstra 最短路**
+
+![Dijkstra 最短路](mockups/v5-dijkstra.png)
+
+**图版：TCP 三次握手**
+
+![TCP 三次握手](mockups/v5-handshake.png)
 
 > 规模上限来自 DSL 的 120 步约束：n = 16 的快排已经 115 步，n = 12 的冒泡 104 步。再大就只能压缩讲解粒度，不如把上限标在参数表里。
 
