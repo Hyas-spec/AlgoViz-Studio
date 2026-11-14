@@ -35,7 +35,8 @@ describe('AI scene generation helpers', () => {
   it('repairs an invalid first output and marks the result as repaired', async () => {
     const phases: string[] = [];
     let calls = 0;
-    const replies = [JSON.stringify({ bad: true }), JSON.stringify(EXAMPLE_SCENE)];
+    const accepted = { ...EXAMPLE_SCENE, category: 'other' };
+    const replies = [JSON.stringify({ bad: true }), JSON.stringify(accepted)];
     const result = await generateScene('插入排序', {
       complete: async () => {
         const reply = replies[calls];
@@ -53,7 +54,7 @@ describe('AI scene generation helpers', () => {
     expect(phases).toContain('repairing');
   });
 
-  it('throws a structured error after two repair rounds', async () => {
+  it('throws a structured error after three repair rounds', async () => {
     let calls = 0;
     await expect(
       generateScene('坏输出', {
@@ -63,15 +64,16 @@ describe('AI scene generation helpers', () => {
         },
       }),
     ).rejects.toBeInstanceOf(AiGenerationError);
-    expect(calls).toBe(3);
+    expect(calls).toBe(4);
   });
 
   it('repairs a structurally valid but too-short scene', async () => {
     const shortScene = JSON.parse(JSON.stringify(EXAMPLE_SCENE)) as typeof EXAMPLE_SCENE;
     shortScene.steps = shortScene.steps.slice(0, 4);
     shortScene.outline = shortScene.outline.map((item, index) => ({ ...item, step: Math.min(index, 3) }));
+    const accepted = { ...EXAMPLE_SCENE, category: 'other' };
     let calls = 0;
-    const replies = [JSON.stringify(shortScene), JSON.stringify(EXAMPLE_SCENE)];
+    const replies = [JSON.stringify(shortScene), JSON.stringify(accepted)];
     const result = await generateScene('太短的场景', {
       complete: async () => {
         const reply = replies[calls];

@@ -3,7 +3,7 @@ import { Figure } from './components/Figure';
 import { Formula } from './components/Formula';
 import { JsonDrawer } from './components/JsonDrawer';
 import type { Scene } from './lib/dsl';
-import { generateScene, AiGenerationError, type AiPhase } from './lib/ai/generate';
+import { generateScene, AiGenerationError, AI_MAX_REPAIRS, type AiPhase } from './lib/ai/generate';
 import { describeState } from './lib/describe';
 import {
   createScene,
@@ -96,7 +96,7 @@ export default function App() {
       : aiStatus === 'validating'
         ? '校验 Scene DSL'
         : aiStatus === 'repairing'
-          ? `修复第 ${Math.max(1, aiRound)}/2 轮`
+          ? `修复第 ${Math.max(1, aiRound)}/${AI_MAX_REPAIRS} 轮`
           : aiStatus === 'error'
             ? '生成失败'
             : '生成完成';

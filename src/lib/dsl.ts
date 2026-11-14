@@ -423,11 +423,10 @@ function collectIssues(scene: Scene): SceneIssue[] {
         checkTree(state, path, issues);
         const current = new Map(state.nodes.map((node) => [node.id, node.parent]));
         if (previousTree) {
-          previousTree.forEach((parent, id) => {
+          previousTree.forEach((_parent, id) => {
+            // 允许旋转/插入改变 parent、side，也允许新增节点；旧节点不能凭空消失。
             if (!current.has(id)) {
               issues.push({ path: `${path}.nodes`, message: `第 ${i} 步缺少之前出现过的节点 ${id}` });
-            } else if (current.get(id) !== parent) {
-              issues.push({ path: `${path}.nodes`, message: `节点 ${id} 的父节点在第 ${i} 步被改动了` });
             }
           });
         }

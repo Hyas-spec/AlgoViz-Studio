@@ -33,7 +33,18 @@ export class AiGenerationError extends Error {
   }
 }
 
-const MAX_REPAIRS = 2;
+const MAX_REPAIRS = 3;
+
+export const AI_MAX_REPAIRS = MAX_REPAIRS;
+
+/** 各题材的最低帧数：排序要像内置场景一样把每次比较/移动讲开。 */
+function minSteps(scene: Scene): number {
+  if (scene.category === 'sort') return 24;
+  if (scene.category === 'search') return 8;
+  if (scene.layout === 'tree' || scene.layout === 'graph') return 12;
+  if (scene.layout === 'sequence') return 5;
+  return 8;
+}
 
 /** 剥掉模型偶尔带的 ```json 围栏和解释文字，再 JSON.parse。 */
 export function extractJson(raw: string): unknown {
@@ -60,11 +71,11 @@ function toIssues(error: unknown): SceneIssue[] {
 /** Schema 管不住“太短/没收尾”，这里给 AI 场景加最低质量线。 */
 function qualityIssues(scene: Scene): SceneIssue[] {
   const issues: SceneIssue[] = [];
-  const minSteps = scene.layout === 'sequence' ? 4 : 8;
-  if (scene.steps.length < minSteps) {
+  const min = minSteps(scene);
+  if (scene.steps.length < min) {
     issues.push({
       path: 'steps',
-      message: `${scene.layout} 场景至少 ${minSteps} 帧，当前只有 ${scene.steps.length} 帧`,
+      message: `${scene.category} / ${scene.layout} 场景至少 ${min} 帧，当前只有 ${scene.steps.length} 帧`,
     });
   }
   scene.steps.forEach((step, index) => {
@@ -78,6 +89,13 @@ function qualityIssues(scene: Scene): SceneIssue[] {
   const last = scene.steps[scene.steps.length - 1];
   if (last && !last.doneAll) {
     issues.push({ path: `steps[${scene.steps.length - 1}].doneAll`, message: '最后一帧必须标记 doneAll: true' });
+  }
+  const firstState = scene.steps[0]?.state;
+  if (scene.category === 'sort' && firstState?.kind === 'array' && firstState.values.length < 8) {
+    issues.push({
+      path: 'steps[0].state.values',
+      message: `排序场景至少要有 8 个元素，当前只有 ${firstState.values.length} 个，内容会太单薄`,
+    });
   }
   return issues;
 }

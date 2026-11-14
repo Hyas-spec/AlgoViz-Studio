@@ -361,6 +361,22 @@ describe('scene validator', () => {
     expect(issueMessages(scene).join('\n')).toContain('检测到环');
   });
 
+  it('allows rotations and new nodes between tree steps', () => {
+    const scene = clone<Scene>(createScene('inorder'));
+    const state = treeState(scene.steps[0]);
+    const leaf = state.nodes.find((candidate) => candidate.id === 'n1');
+    if (!leaf) throw new Error('missing leaf');
+    leaf.parent = 'n7';
+    leaf.side = 'L';
+    state.nodes.push({ id: 'n99', label: '99', parent: 'n1', side: 'L' });
+    scene.steps.forEach((item) => {
+      if (item.state.kind !== 'tree') return;
+      if (item.state.nodes.some((node) => node.id === 'n99')) return;
+      item.state.nodes.push({ id: 'n99', label: '99', parent: 'n1', side: 'L' });
+    });
+    expect(() => validateScene(scene)).not.toThrow();
+  });
+
   it('rejects two children occupying the same side', () => {
     const scene = clone<Scene>(createScene('preorder'));
     const state = treeState(scene.steps[0]);
