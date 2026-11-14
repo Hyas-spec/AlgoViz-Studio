@@ -1,6 +1,6 @@
 # AlgoViz · 算法视界
 
-> 说一句原理，生成一段可单步、可调参、可导出的算法动画。
+> 说一句原理，生成一段可单步、可调参、可回放的算法动画。
 
 面向计算机 / 理工科学生的「讲义双页」式算法可视化工作台：左页讲解（正文、公式、伪代码），右页图版（可播放的算法动画 + 标尺时间轴）。自然语言生成 → 结构化 Scene DSL → 可复现的动画。
 
@@ -24,7 +24,10 @@
 - ✅ 可访问性与移动端：Space / Enter 不再被全局快捷键劫持；标尺可实时拖拽；0.5× 慢放；播完可从头重播；手机数组最大规模不裁切，往期抽屉可用
 - ✅ KaTeX 公式与「Scene DSL · 只读 JSON」抽屉
 - ✅ AI 生成：非内置主题走 `/api/llm` SSE 流式生成 → JSON 解析 → Zod/业务校验 → 质量线（排序至少 24 帧、8 个元素）→ 最多 3 轮自动修复 → 右页上屏；左侧显示流式 trace，可停止，来源标注「AI 生成 / AI 修复后」
-- ⬜ 待接入：导出、完整历史与分享（AI 场景目前是本次会话，刷新回到内置场景）
+- 🚧 11/15 计划：AI 历史（localStorage + `#ai=` 恢复）与「直接讲解」问答模式
+- ⬜ P2（不阻塞提交）：PNG / Markdown / GIF / 教学卡片导出；完整分享链接
+
+> 比赛硬性交付、已完成证据、待办与需要你确认的事项，见 [交付台账](docs/02-交付台账.md)。
 
 ## 场景
 
@@ -76,7 +79,7 @@
 - 生成时页眉显示阶段，左页底部显示流式 trace、已收到字数与「停止」按钮。
 - 输出先经过 `JSON.parse`（自动剥离 ```json 围栏）→ Zod 结构校验 → 业务规则 → 质量线（array/tree/graph 至少 8 帧、最后一帧 `doneAll`、`codeLine` 范围）。
 - 校验失败会把问题清单回喂模型，最多修复 3 轮；成功后右页上方标注「AI 生成」或「AI 修复后」。
-- AI 场景暂不写往期、不写 URL、刷新回到内置场景；导出/历史会后续接入。
+- AI 场景暂不写往期、不写 URL、刷新回到内置场景；AI 历史/直接讲解放到 11/15，导出放到 P2。
 
 ![AI 生成的 Prim 最小生成树](mockups/v5-ai-prim.png)
 
@@ -101,8 +104,9 @@ curl http://127.0.0.1:5173/api/llm/health
 环境：Node 20.19+（本机 26.13）、npm 11+。
 
 ```bash
-# 1. 安装依赖（国内网络可加 --registry=https://registry.npmmirror.com）
-npm install
+# 1. 安装依赖（有 lockfile，优先 npm ci；国内网络可加 --registry=https://registry.npmmirror.com）
+npm ci
+# 没有 lockfile 或需要改依赖时再用：npm install
 
 # 2. 环境变量（内置场景不需要；AI 生成需要 Key）
 #    Windows: copy .env.local.example .env.local
@@ -138,7 +142,7 @@ npm test           # vitest run
 ## 目录
 
 ```
-docs/             设计书、操作流程、Prompt 记录
+docs/             设计书、操作流程、交付台账、视频脚本、技术文档大纲、Prompt 记录
   prompts/        文字版 Prompt 链（00 界面选型、01 脚手架与双页、02 引擎与三种排序）
 mockups/          视觉基线、场景截图与兼容性截图
 src/
@@ -156,4 +160,8 @@ src/
 - [Prompt 00 · 界面选型](docs/prompts/00-界面选型.md)
 - [Prompt 01 · 脚手架与双页](docs/prompts/01-脚手架与双页.md)
 - [Prompt 02 · 引擎与场景](docs/prompts/02-引擎与三种排序.md)
+- [Prompt 03 · AI 生成与修复（文字稿，截图待补）](docs/prompts/03-AI生成与修复.md)
+- [交付台账 · 当前完成度与待办](docs/02-交付台账.md)
+- [视频脚本 · 6 分钟版](docs/03-视频脚本.md)
+- [技术文档大纲 · ≤30 页](docs/04-技术文档大纲.md)
 - 视觉基线：[concept-spread.png](mockups/concept-spread.png)
