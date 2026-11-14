@@ -138,6 +138,11 @@ export const sceneSchema = z.object({
   question: z.string().min(1).max(160),
   figure: z.string().min(1).max(40),
   facts: z.array(z.object({ label: z.string().min(1).max(16), value: z.string().min(1).max(24) })).length(3),
+  /** 缩写注释：给零基础读者的术语表，协议 / 网络场景用。 */
+  glossary: z
+    .array(z.object({ term: z.string().min(1).max(16), text: z.string().min(1).max(60) }))
+    .max(8)
+    .optional(),
   outline: z.array(outlineItemSchema).length(4),
   steps: z.array(stepSchema).min(1).max(120),
   params: z.array(paramSpecSchema).max(4),
@@ -363,6 +368,15 @@ function collectIssues(scene: Scene): SceneIssue[] {
     if (item.step !== undefined && (item.step < 0 || item.step >= scene.steps.length)) {
       issues.push({ path: `outline[${i}].step`, message: `步骤下标 ${item.step} 超出 0..${scene.steps.length - 1}` });
     }
+  });
+
+  const glossaryTerms = new Set<string>();
+  scene.glossary?.forEach((item, i) => {
+    const key = item.term.toLowerCase();
+    if (glossaryTerms.has(key)) {
+      issues.push({ path: `glossary[${i}].term`, message: `术语重复：${item.term}` });
+    }
+    glossaryTerms.add(key);
   });
 
   scene.steps.forEach((step, i) => {

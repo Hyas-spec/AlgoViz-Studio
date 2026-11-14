@@ -294,6 +294,20 @@ export default function App() {
               ))}
             </div>
 
+            {scene.glossary && scene.glossary.length > 0 ? (
+              <div className="glossary" aria-label="缩写注释">
+                <div className="glossary-title">缩写注释</div>
+                <dl>
+                  {scene.glossary.map((item) => (
+                    <div className="glossary-item" key={item.term}>
+                      <dt>{item.term}</dt>
+                      <dd>{item.text}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ) : null}
+
             {scene.params.length > 0 ? (
               <div className="params" role="group" aria-label="参数">
                 <div className="params-title">参数</div>

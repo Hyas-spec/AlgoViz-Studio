@@ -274,6 +274,23 @@ describe('network scenes and parameters', () => {
       expect(scene.steps[scene.steps.length - 1].doneAll).toBe(true);
     }
   });
+
+  it('explains protocol abbreviations for beginners', () => {
+    const handshake = createScene('handshake');
+    const handshakeTerms = (handshake.glossary ?? []).map((item) => item.term);
+    expect(handshakeTerms).toEqual(expect.arrayContaining(['SYN', 'ACK', 'SYN+ACK', 'ESTABLISHED', 'RTT']));
+    expect(handshake.glossary).toHaveLength(8);
+
+    const wave = createScene('wave');
+    const waveTerms = (wave.glossary ?? []).map((item) => item.term);
+    expect(waveTerms).toEqual(expect.arrayContaining(['FIN', 'CLOSE-WAIT', 'TIME-WAIT', '2MSL']));
+    expect(wave.glossary).toHaveLength(8);
+
+    for (const item of [...(handshake.glossary ?? []), ...(wave.glossary ?? [])]) {
+      expect(item.text.length).toBeGreaterThan(3);
+      expect(item.text.length).toBeLessThanOrEqual(60);
+    }
+  });
 });
 
 describe('scene validator', () => {
@@ -365,6 +382,13 @@ describe('scene validator', () => {
     const state = sequenceState(scene.steps[1]);
     state.active = 'm999';
     expect(issueMessages(scene).join('\n')).toContain('active 指向不存在的消息 m999');
+  });
+
+  it('rejects duplicate glossary terms', () => {
+    const scene = clone<Scene>(createScene('handshake'));
+    if (!scene.glossary) throw new Error('missing glossary');
+    scene.glossary[1].term = 'SYN';
+    expect(issueMessages(scene).join('\n')).toContain('术语重复：SYN');
   });
 
   it('rejects a sequence message pointing at a missing lane', () => {    const scene: Scene = {
