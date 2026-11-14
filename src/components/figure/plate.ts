@@ -3,7 +3,7 @@ export const INK = '#151515';
 export const BLUE = '#1B4DFF';
 export const ORANGE = '#E4572E';
 export const MUTED = '#6D6658';
-export const FAINT = '#9B9382';
+export const FAINT = '#756D5F';
 export const RULE = 'rgba(21,21,21,.35)';
 export const FONT_MONO = '"Cascadia Mono", Consolas, monospace';
 

@@ -1,4 +1,4 @@
-import { validateScene, type Scene, type Step } from '../dsl';
+import { validateScene, type ArrayState, type Scene, type Step } from '../dsl';
 import { clampInt, sampleArray, type Params } from './common';
 
 interface Marks {
@@ -13,12 +13,19 @@ function buildSteps(input: number[]): { steps: Step[]; marks: Marks } {
   const steps: Step[] = [];
   const marks: Marks = { divide: 0, recurse: 0, merge: 0, write: 0 };
   const recorded = new Set<keyof Marks>();
+  const settled = new Set<number>();
   const n = a.length;
   let comparisons = 0;
   let writes = 0;
 
   const push = (
-    s: { caption: string; codeLine: number; compare?: number | null; range?: [number, number]; doneAll?: boolean },
+    s: {
+      caption: string;
+      codeLine: number;
+      range?: [number, number];
+      aux?: ArrayState['aux'];
+      doneAll?: boolean;
+    },
     mark?: keyof Marks,
   ) => {
     steps.push({
@@ -33,10 +40,11 @@ function buildSteps(input: number[]): { steps: Step[]; marks: Marks } {
         kind: 'array',
         values: [...a],
         pivot: null,
-        compare: s.compare ?? null,
+        compare: null,
         swap: null,
-        locked: s.doneAll ? a.map((_, i) => i) : [],
+        locked: s.doneAll ? a.map((_, i) => i) : [...settled].sort((x, y) => x - y),
         range: s.range ?? [0, n - 1],
+        aux: s.aux,
       },
     });
     if (mark && !recorded.has(mark)) {
@@ -50,7 +58,18 @@ function buildSteps(input: number[]): { steps: Step[]; marks: Marks } {
     const right = a.slice(m + 1, r + 1);
     const range: [number, number] = [l, r];
 
-    push({ caption: `合并 [${l}..${m}] 与 [${m + 1}..${r}]`, codeLine: 5, range }, 'merge');
+    // 当前区间正在被重写，先取消“已排序”标记；子区间蓝条只在合并前可见。
+    for (let index = l; index <= r; index += 1) settled.delete(index);
+
+    push(
+      {
+        caption: `合并 [${l}..${m}] 与 [${m + 1}..${r}]`,
+        codeLine: 5,
+        range,
+        aux: { left, right, i: 0, j: 0, target: l },
+      },
+      'merge',
+    );
 
     let i = 0;
     let j = 0;
@@ -58,28 +77,67 @@ function buildSteps(input: number[]): { steps: Step[]; marks: Marks } {
 
     while (i < left.length && j < right.length) {
       comparisons += 1;
-      push({ caption: `比较左段 ${left[i]} 与右段 ${right[j]}`, codeLine: 5, compare: k, range }, 'recurse');
-      a[k] = left[i] <= right[j] ? left[i++] : right[j++];
+      push(
+        {
+          caption: `比较左段 ${left[i]} 与右段 ${right[j]}`,
+          codeLine: 5,
+          range,
+          aux: { left, right, i, j, target: k },
+        },
+        'recurse',
+      );
+
+      const takeLeft = left[i] <= right[j];
+      const value = takeLeft ? left[i] : right[j];
+      if (takeLeft) i += 1;
+      else j += 1;
+      a[k] = value;
       writes += 1;
-      push({ caption: `写入 a[${k}] = ${a[k]}`, codeLine: 6, compare: k, range }, 'write');
+      push(
+        {
+          caption: `写入 a[${k}] = ${value}`,
+          codeLine: 6,
+          range,
+          aux: { left, right, i, j, target: k },
+        },
+        'write',
+      );
       k += 1;
     }
 
     while (i < left.length) {
-      a[k] = left[i++];
+      a[k] = left[i];
       writes += 1;
-      push({ caption: `补入左段 ${a[k]} → a[${k}]`, codeLine: 6, compare: k, range });
+      push({
+        caption: `补入左段 ${a[k]} → a[${k}]`,
+        codeLine: 6,
+        range,
+        aux: { left, right, i, j, target: k },
+      });
+      i += 1;
       k += 1;
     }
 
     while (j < right.length) {
-      a[k] = right[j++];
+      a[k] = right[j];
       writes += 1;
-      push({ caption: `补入右段 ${a[k]} → a[${k}]`, codeLine: 6, compare: k, range });
+      push({
+        caption: `补入右段 ${a[k]} → a[${k}]`,
+        codeLine: 6,
+        range,
+        aux: { left, right, i, j, target: k },
+      });
+      j += 1;
       k += 1;
     }
 
-    push({ caption: `区间 [${l}..${r}] 合并完成`, codeLine: 6, range });
+    for (let index = l; index <= r; index += 1) settled.add(index);
+    push({
+      caption: `区间 [${l}..${r}] 合并完成，这一段已经有序`,
+      codeLine: 6,
+      range,
+      aux: { left, right, i, j, target: k - 1 },
+    });
   };
 
   const sort = (l: number, r: number) => {

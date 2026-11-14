@@ -69,7 +69,8 @@ export const SCENE_DEFAULTS = Object.fromEntries(
 ) as Record<SceneId, Params>;
 
 export function isSceneId(value: string | null): value is SceneId {
-  return value !== null && value in MODULES;
+  // 不能用 `value in MODULES`：constructor / toString 会命中原型链，随后 createScene 崩溃。
+  return value !== null && Object.prototype.hasOwnProperty.call(MODULES, value);
 }
 
 /** 参数缺省时用场景默认值；引擎内部再做一次范围钳制。 */
@@ -86,6 +87,7 @@ export function sceneDefaults(id: SceneId): Params {
 export function routeScene(prompt: string): SceneId | null {
   if (/握手|SYN|三次/i.test(prompt)) return 'handshake';
   if (/挥手|四次|FIN|TIME-WAIT|TIME_WAIT/i.test(prompt)) return 'wave';
+  if (/TCP|传输控制/i.test(prompt)) return 'handshake';
   if (/dijkstra|最短路|单源|松弛/i.test(prompt)) return 'dijkstra';
   if (/广度优先/.test(prompt) && !/二叉树|树|层序/.test(prompt)) return 'bfs';
   if (/图|顶点|邻接|无向|有向/.test(prompt) && /BFS|广度/i.test(prompt)) return 'bfs';

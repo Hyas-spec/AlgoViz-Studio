@@ -12,9 +12,11 @@ export function drawArray(
   const n = values.length;
   const padX = 26;
   const padTop = 48;
-  const padBottom = 44;
-  const gap = 16;
-  const barW = Math.max(10, (W - padX * 2 - gap * (n - 1)) / n);
+  const auxiliary = state.aux ?? null;
+  const padBottom = auxiliary ? 82 : 44;
+  // 大数组在窄屏上不能继续用 10px 柱 + 16px 间距，否则右侧会被裁掉。
+  const gap = n > 12 ? Math.max(4, Math.min(16, (W - padX * 2) / (n * 4))) : 16;
+  const barW = Math.max(4, (W - padX * 2 - gap * (n - 1)) / n);
   const baseY = H - padBottom;
   const maxH = baseY - padTop - 34;
   const maxVal = Math.max(...values, 1);
@@ -78,4 +80,48 @@ export function drawArray(
   ctx.moveTo(padX - 6, baseY + 0.5);
   ctx.lineTo(W - padX + 6, baseY + 0.5);
   ctx.stroke();
+
+  if (auxiliary) {
+    const { left, right, i, j, target } = auxiliary;
+    const cell = Math.max(14, Math.min(26, (W - 54) / Math.max(left.length, right.length, 1)));
+    const drawRow = (label: string, items: number[], pointer: number, y: number) => {
+      ctx.font = `8px ${FONT_MONO}`;
+      ctx.fillStyle = MUTED;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, 8, y);
+
+      if (items.length === 0) {
+        ctx.fillStyle = FAINT;
+        ctx.fillText('空', 42, y);
+        return;
+      }
+
+      items.forEach((value, index) => {
+        const x = 42 + index * cell;
+        const current = index === pointer;
+        ctx.fillStyle = current ? 'rgba(228,87,46,.14)' : PAPER;
+        ctx.fillRect(x, y - 7, cell - 2, 14);
+        ctx.strokeStyle = current ? ORANGE : 'rgba(21,21,21,.28)';
+        ctx.lineWidth = current ? 1.4 : 1;
+        ctx.strokeRect(x + 0.5, y - 6.5, cell - 3, 13);
+        ctx.fillStyle = current ? ORANGE : INK;
+        ctx.textAlign = 'center';
+        ctx.fillText(String(value), x + (cell - 2) / 2, y + 0.5);
+        ctx.textAlign = 'left';
+      });
+    };
+
+    ctx.save();
+    drawRow('左段', left, i, H - 50);
+    drawRow('右段', right, j, H - 31);
+
+    // 目标格：主数组下方的一道朱砂短线，表示下一次写入的位置
+    if (target >= 0 && target < n) {
+      const targetX = padX + target * (barW + gap);
+      ctx.fillStyle = ORANGE;
+      ctx.fillRect(targetX, baseY + 2, barW, 2);
+    }
+    ctx.restore();
+  }
 }

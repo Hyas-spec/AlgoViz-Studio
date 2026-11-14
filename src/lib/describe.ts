@@ -16,6 +16,10 @@ export function describeState(state: StepState): string {
     if (state.locked.length > 0) {
       parts.push(`已就位 ${state.locked.length} 个元素`);
     }
+    if (state.aux) {
+      parts.push(`左段 ${state.aux.left.join('、') || '空'}，右段 ${state.aux.right.join('、') || '空'}`);
+      parts.push(`下一次写入下标 ${state.aux.target}`);
+    }
     return `${parts.join('；')}。`;
   }
 

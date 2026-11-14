@@ -16,6 +16,14 @@ import { loadRecent, paramsSummary, saveRecent, timeAgo, type RecentEntry } from
 
 type Params = Record<string, number>;
 
+/** 图例：四类图版各一行，解释颜色/线型/小字的含义。 */
+const LEGENDS = {
+  array: '橙=基准/当前来源 · 蓝斜纹=比较 · 蓝=已就位/已排序',
+  tree: '黑=已访问 · 蓝虚线=队列/栈 · 橙圈=当前',
+  graph: '黑=已确定/已访问 · 蓝虚线=待访问 · 橙圈=当前 · 节点下=暂定距离',
+  sequence: '蓝=SYN · 黑=ACK · 橙=FIN · 虚线=丢包',
+} as const;
+
 function readInitial(): { sceneId: SceneId; params: Params; index: number } {
   const query = new URLSearchParams(window.location.search);
   const rawStep = Number.parseInt(query.get('step') ?? '', 10);
@@ -55,6 +63,8 @@ export default function App() {
   const pendingParams = useRef<Params | null>(null);
   const paramsKey = JSON.stringify(params);
   const paramsRef = useRef(paramsKey);
+  const recentPanelRef = useRef<HTMLDivElement>(null);
+  const recentToggleRef = useRef<HTMLButtonElement>(null);
 
   const scene = useMemo(() => createScene(sceneId, params), [sceneId, paramsKey]);
   const steps = scene.steps;
@@ -63,6 +73,7 @@ export default function App() {
   const step = steps[safeIndex];
   const progress = last > 0 ? safeIndex / last : 0;
   const sizeParam = scene.params.find((param) => param.key === 'size');
+  const codeLines = useMemo(() => new Set(steps.map((item) => item.codeLine)), [steps]);
 
   const noteTitle = useMemo(() => {
     const i = scene.note.indexOf('？');
@@ -76,6 +87,18 @@ export default function App() {
   const goTo = (next: number) => {
     setPlaying(false);
     setIndex(Math.max(0, Math.min(last, next)));
+  };
+
+  /** 播放键：到最后一帧时从头重播，而不是按了没反应。 */
+  const togglePlay = () => {
+    if (safeIndex >= last) {
+      if (last > 0) {
+        setIndex(0);
+        setPlaying(true);
+      }
+      return;
+    }
+    setPlaying((value) => !value);
   };
 
   const jumpToLine = (line: number) => {
@@ -127,7 +150,7 @@ export default function App() {
     setPlaying(false);
   }, [paramsKey]);
 
-  // 地址栏：场景与参数可复现；首次加载保留 &step 深链
+  // 地址栏：场景、参数与当前帧都可复现；step 用 0 基下标。
   useEffect(() => {
     const url = new URL(window.location.href);
     url.searchParams.set('scene', sceneId);
@@ -137,9 +160,13 @@ export default function App() {
     for (const key of [...url.searchParams.keys()]) {
       if (key !== 'scene' && key !== 'step' && !(key in params)) url.searchParams.delete(key);
     }
-    if (sceneRef.current === sceneId) url.searchParams.delete('step');
+    if (safeIndex > 0) {
+      url.searchParams.set('step', String(safeIndex));
+    } else {
+      url.searchParams.delete('step');
+    }
     window.history.replaceState(null, '', url);
-  }, [sceneId, paramsKey]);
+  }, [sceneId, paramsKey, safeIndex]);
 
   // 地址栏可能带来越界参数：按场景规格钳制，保证滑块与画面一致
   useEffect(() => {
@@ -165,6 +192,23 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [sceneId, paramsKey]);
 
+  // 往期打开：把焦点移进面板；点面板外关闭；Esc 由全局键盘处理
+  useEffect(() => {
+    if (!recentOpen) return;
+    const panel = recentPanelRef.current;
+    const first = panel?.querySelector<HTMLElement>('button');
+    (first ?? panel)?.focus();
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (panel?.contains(target) || recentToggleRef.current?.contains(target)) return;
+      setRecentOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [recentOpen]);
+
   useEffect(() => {
     if (!notice) return;
     const id = window.setTimeout(() => setNotice(null), 7000);
@@ -177,19 +221,35 @@ export default function App() {
       setPlaying(false);
       return;
     }
+    const duration = steps[safeIndex]?.durationMs ?? 900;
     const id = window.setTimeout(() => {
       setIndex((i) => Math.min(i + 1, last));
-    }, 900 / speed);
+    }, duration / speed);
     return () => window.clearTimeout(id);
-  }, [playing, index, speed, last]);
+  }, [playing, index, speed, last, safeIndex, steps]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const target = e.target;
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
+      const target = e.target instanceof HTMLElement ? e.target : null;
+
+      // Esc 先处理：即使焦点在输入框里，也能退出演示 / 收起往期
+      if (e.key === 'Escape') {
+        setFocus(false);
+        setRecentOpen(false);
+        return;
+      }
+
+      // 输入框、文本域、下拉框、contenteditable 不抢快捷键
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      // Space / Enter 属于按钮的默认激活键，不能被全局播放快捷键劫持
+      const interactive = target?.closest('button, a, summary, [role="button"], [role="slider"]');
+      if (interactive && (e.code === 'Space' || e.key === 'Enter')) return;
+
       if (e.code === 'Space') {
         e.preventDefault();
-        setPlaying((p) => !p);
+        togglePlay();
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         goTo(safeIndex + 1);
@@ -202,9 +262,6 @@ export default function App() {
         goTo(last);
       } else if (e.key === 'f' || e.key === 'F') {
         setFocus((value) => !value);
-      } else if (e.key === 'Escape') {
-        setFocus(false);
-        setRecentOpen(false);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -271,18 +328,27 @@ export default function App() {
             </div>
 
             <div className="code">
-              {scene.code.map((line, i) => (
-                <button
-                  key={line}
-                  type="button"
-                  className={step.codeLine === i + 1 ? 'line active' : 'line'}
-                  aria-label={`跳到伪代码第 ${i + 1} 行对应的步骤`}
-                  onClick={() => jumpToLine(i + 1)}
-                >
-                  <span className="ln">{i + 1}</span>
-                  {line}
-                </button>
-              ))}
+              {scene.code.map((line, i) => {
+                const hasStep = codeLines.has(i + 1);
+                return (
+                  <button
+                    key={`${i}-${line}`}
+                    type="button"
+                    disabled={!hasStep}
+                    className={`${step.codeLine === i + 1 ? 'line active' : 'line'}${hasStep ? '' : ' muted'}`}
+                    aria-label={
+                      hasStep
+                        ? `跳到伪代码第 ${i + 1} 行对应的步骤`
+                        : `伪代码第 ${i + 1} 行没有对应的动画步骤`
+                    }
+                    title={hasStep ? undefined : '这一行没有对应的动画步骤'}
+                    onClick={hasStep ? () => jumpToLine(i + 1) : undefined}
+                  >
+                    <span className="ln">{i + 1}</span>
+                    {line}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="facts">
@@ -291,6 +357,21 @@ export default function App() {
                   {fact.label}
                   <b>{fact.value}</b>
                 </div>
+              ))}
+            </div>
+
+            <div className="step-index">
+              <div className="si-title">
+                <span>本节步骤</span>
+                <span>{String(steps.length).padStart(2, '0')} STEPS</span>
+              </div>
+              {scene.outline.map((item, i) => (
+                <button className="si-row" key={item.label} type="button" onClick={() => goTo(item.step ?? 0)}>
+                  <b>{String(i + 1).padStart(2, '0')}</b>
+                  <span>{item.label}</span>
+                  <i />
+                  <em>{item.value}</em>
+                </button>
               ))}
             </div>
 
@@ -357,21 +438,6 @@ export default function App() {
               {noteBody}
             </div>
 
-            <div className="step-index">
-              <div className="si-title">
-                <span>本节步骤</span>
-                <span>{String(steps.length).padStart(2, '0')} STEPS</span>
-              </div>
-              {scene.outline.map((item, i) => (
-                <button className="si-row" key={item.label} type="button" onClick={() => goTo(item.step ?? 0)}>
-                  <b>{String(i + 1).padStart(2, '0')}</b>
-                  <span>{item.label}</span>
-                  <i />
-                  <em>{item.value}</em>
-                </button>
-              ))}
-            </div>
-
             <details className="step-list">
               <summary>全部 {steps.length} 步</summary>
               <ol>
@@ -431,6 +497,7 @@ export default function App() {
           <div className="pgl-row">
             <span className="pgl">{scene.pages[0]}</span>
             <button
+              ref={recentToggleRef}
               className="recent-toggle"
               type="button"
               aria-expanded={recentOpen}
@@ -441,7 +508,14 @@ export default function App() {
           </div>
 
           {recentOpen ? (
-            <div className="recent-panel" role="dialog" aria-label="往期讲义">
+            <div
+              ref={recentPanelRef}
+              className="recent-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-label="往期讲义"
+              tabIndex={-1}
+            >
               {recent.length === 0 ? (
                 <p>还没有记录，切换一个场景就会留下痕迹。</p>
               ) : (
@@ -475,6 +549,10 @@ export default function App() {
             <b>图 {scene.figNo}</b> · {step.caption}
           </div>
 
+          <div className="figure-key" aria-label="图例">
+            {LEGENDS[scene.layout]}
+          </div>
+
           {step.metrics && step.metrics.length > 0 ? (
             <div className="metrics" aria-label="过程量">
               {step.metrics.map((metric) => (
@@ -486,7 +564,7 @@ export default function App() {
             </div>
           ) : null}
 
-          <p className="sr-only" aria-live="polite">
+          <p className="sr-only" aria-live={playing ? 'off' : 'polite'}>
             {describeState(step.state)}
           </p>
 
@@ -503,21 +581,48 @@ export default function App() {
             aria-valuemin={1}
             aria-valuemax={steps.length}
             aria-valuenow={safeIndex + 1}
+            aria-valuetext={`第 ${safeIndex + 1} 步，共 ${steps.length} 步`}
             tabIndex={0}
-            onClick={(e) => {
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.currentTarget.focus();
+              e.currentTarget.setPointerCapture(e.pointerId);
               const rect = e.currentTarget.getBoundingClientRect();
               const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
               goTo(Math.round(ratio * last));
+            }}
+            onPointerMove={(e) => {
+              if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+              goTo(Math.round(ratio * last));
+            }}
+            onPointerUp={(e) => {
+              if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              }
+            }}
+            onPointerCancel={(e) => {
+              if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              }
             }}
           >
             <div className="marker" style={{ left: `${progress * 100}%` }} />
           </div>
 
           <div className="transport">
+            <button className="pl" aria-label="回到开头" title="回到第 1 帧（Home）" onClick={() => goTo(0)}>
+              ↺
+            </button>
             <button className="pl" aria-label="上一步" onClick={() => goTo(safeIndex - 1)}>
               ◁
             </button>
-            <button className="pl play" aria-label={playing ? '暂停' : '播放'} onClick={() => setPlaying((p) => !p)}>
+            <button
+              className="pl play"
+              aria-label={safeIndex >= last ? '从头播放' : playing ? '暂停' : '播放'}
+              onClick={togglePlay}
+            >
               {playing ? 'II' : '▶'}
             </button>
             <button className="pl" aria-label="下一步" onClick={() => goTo(safeIndex + 1)}>
@@ -528,8 +633,9 @@ export default function App() {
             </span>
             <button
               className="speed"
-              aria-label="切换速度"
-              onClick={() => setSpeed((s) => (s === 1 ? 1.5 : s === 1.5 ? 2 : 1))}
+              aria-label={`播放速度，当前 ${speed} 倍`}
+              title="0.5× / 1× / 1.5× / 2×"
+              onClick={() => setSpeed((s) => (s === 0.5 ? 1 : s === 1 ? 1.5 : s === 1.5 ? 2 : 0.5))}
             >
               {speed.toFixed(1)}×
             </button>

@@ -23,6 +23,16 @@ export const arrayStateSchema = z.object({
   swap: z.tuple([z.number().int(), z.number().int()]).nullable(),
   locked: z.array(z.number().int()).max(64),
   range: z.tuple([z.number().int(), z.number().int()]),
+  /** 归并排序的左右辅助段：values 是被写回的原数组，这里给出两段来源与指针。 */
+  aux: z
+    .object({
+      left: z.array(finiteNumber).max(64),
+      right: z.array(finiteNumber).max(64),
+      i: z.number().int().min(0).max(64),
+      j: z.number().int().min(0).max(64),
+      target: z.number().int().min(0).max(63),
+    })
+    .optional(),
 });
 
 export const treeNodeSchema = z.object({
@@ -198,6 +208,17 @@ function checkIndexes(state: ArrayState, path: string, issues: SceneIssue[]): vo
   const [l, r] = state.range;
   if (l < 0 || r >= n || l > r) {
     issues.push({ path: `${path}.range`, message: `区间 [${l}, ${r}] 非法（要求 0 ≤ l ≤ r ≤ ${n - 1}）` });
+  }
+
+  if (state.aux) {
+    const { left, right, i, j, target } = state.aux;
+    if (i > left.length) {
+      issues.push({ path: `${path}.aux.i`, message: `左段指针 ${i} 超出 [0, ${left.length}]` });
+    }
+    if (j > right.length) {
+      issues.push({ path: `${path}.aux.j`, message: `右段指针 ${j} 超出 [0, ${right.length}]` });
+    }
+    check(target, 'aux.target');
   }
 }
 

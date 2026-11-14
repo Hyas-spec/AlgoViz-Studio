@@ -58,6 +58,8 @@ describe('built-in scenes', () => {
     }
     expect(isSceneId('nope')).toBe(false);
     expect(isSceneId(null)).toBe(false);
+    expect(isSceneId('constructor')).toBe(false);
+    expect(isSceneId('__proto__')).toBe(false);
   });
 
   it.each(SCENE_ORDER)('%s: default params produce a valid scene', (id) => {
@@ -130,6 +132,29 @@ describe('sorting scenes and parameters', () => {
     const last = scene.steps[scene.steps.length - 1];
     expect(last.metrics?.map((metric) => metric.label)).toEqual(['比较', '交换', '已就位']);
     expect(Number(last.metrics?.[0].value)).toBeGreaterThan(0);
+  });
+
+  it('merge exposes both source ranges, pointers and progressive sorted ranges', () => {
+    const scene = createScene('merge');
+    const compare = scene.steps.find((item) => item.caption.includes('比较左段'));
+    if (!compare) throw new Error('missing compare step');
+    const state = arrayState(compare);
+    expect(state.aux).toBeDefined();
+    expect(state.aux?.left.length).toBeGreaterThan(0);
+    expect(state.aux?.right.length).toBeGreaterThan(0);
+    expect(state.aux?.target).toBeGreaterThanOrEqual(0);
+    expect(state.aux?.target).toBeLessThan(state.values.length);
+
+    const completed = scene.steps.find((item) => item.caption.includes('合并完成'));
+    if (!completed) throw new Error('missing completion step');
+    expect(arrayState(completed).locked.length).toBeGreaterThan(0);
+
+    for (const item of scene.steps) {
+      if (item.state.kind !== 'array' || !item.state.aux) continue;
+      expect(item.state.aux.i).toBeLessThanOrEqual(item.state.aux.left.length);
+      expect(item.state.aux.j).toBeLessThanOrEqual(item.state.aux.right.length);
+      expect(item.state.aux.target).toBeLessThan(item.state.values.length);
+    }
   });
 });
 
@@ -393,6 +418,14 @@ describe('scene validator', () => {
     expect(issueMessages(scene).join('\n')).toContain('active 指向不存在的消息 m999');
   });
 
+  it('rejects an aux target outside the array', () => {
+    const scene = clone<Scene>(createScene('merge'));
+    const withAux = scene.steps.find((item) => item.state.kind === 'array' && item.state.aux);
+    if (!withAux || withAux.state.kind !== 'array' || !withAux.state.aux) throw new Error('missing aux');
+    withAux.state.aux.target = withAux.state.values.length + 5;
+    expect(issueMessages(scene).join('\n')).toContain('下标 15 超出');
+  });
+
   it('rejects duplicate glossary terms', () => {
     const scene = clone<Scene>(createScene('handshake'));
     if (!scene.glossary) throw new Error('missing glossary');
@@ -470,6 +503,8 @@ describe('rule router', () => {
     expect(routeScene('图的广度优先遍历')).toBe('bfs');
     expect(routeScene('Dijkstra 最短路怎么算')).toBe('dijkstra');
     expect(routeScene('TCP 三次握手')).toBe('handshake');
+    expect(routeScene('TCP')).toBe('handshake');
+    expect(routeScene('传输控制协议')).toBe('handshake');
     expect(routeScene('四次挥手为什么等 2MSL')).toBe('wave');
   });
 
