@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Figure } from './components/Figure';
 import { Formula } from './components/Formula';
 import { JsonDrawer } from './components/JsonDrawer';
+import type { Scene } from './lib/dsl';
+import { generateScene, AiGenerationError, type AiPhase } from './lib/ai/generate';
 import { describeState } from './lib/describe';
 import {
   createScene,
@@ -15,6 +17,8 @@ import {
 import { loadRecent, paramsSummary, saveRecent, timeAgo, type RecentEntry } from './lib/recent';
 
 type Params = Record<string, number>;
+type AiStatus = 'idle' | AiPhase | 'done' | 'error';
+type SceneSource = 'builtin' | 'ai' | 'ai-repaired';
 
 /** 投影字号档位；0 为默认。 */
 const TYPE_SCALES = [1, 1.12, 1.26, 1.42] as const;
@@ -62,6 +66,11 @@ export default function App() {
   const [typeLevel, setTypeLevel] = useState(0);
   const [recent, setRecent] = useState<RecentEntry[]>(() => loadRecent());
   const [recentOpen, setRecentOpen] = useState(false);
+  const [aiScene, setAiScene] = useState<Scene | null>(null);
+  const [aiSource, setAiSource] = useState<'ai' | 'ai-repaired' | null>(null);
+  const [aiStatus, setAiStatus] = useState<AiStatus>('idle');
+  const [aiStream, setAiStream] = useState('');
+  const [aiRound, setAiRound] = useState(0);
 
   const sceneRef = useRef(sceneId);
   const pendingParams = useRef<Params | null>(null);
@@ -69,15 +78,28 @@ export default function App() {
   const paramsRef = useRef(paramsKey);
   const recentPanelRef = useRef<HTMLDivElement>(null);
   const recentToggleRef = useRef<HTMLButtonElement>(null);
+  const aiAbort = useRef<AbortController | null>(null);
 
-  const scene = useMemo(() => createScene(sceneId, params), [sceneId, paramsKey]);
+  const scene = useMemo(() => aiScene ?? createScene(sceneId, params), [aiScene, sceneId, paramsKey]);
   const steps = scene.steps;
   const last = steps.length - 1;
   const safeIndex = Math.min(index, last);
   const step = steps[safeIndex];
   const progress = last > 0 ? safeIndex / last : 0;
-  const sizeParam = scene.params.find((param) => param.key === 'size');
+  const sizeParam = aiScene ? undefined : scene.params.find((param) => param.key === 'size');
   const codeLines = useMemo(() => new Set(steps.map((item) => item.codeLine)), [steps]);
+  const sceneSource: SceneSource = aiScene ? (aiSource ?? 'ai') : 'builtin';
+  const aiBusy = aiStatus === 'streaming' || aiStatus === 'validating' || aiStatus === 'repairing';
+  const aiStatusText =
+    aiStatus === 'streaming'
+      ? 'AI 正在生成'
+      : aiStatus === 'validating'
+        ? '校验 Scene DSL'
+        : aiStatus === 'repairing'
+          ? `修复第 ${Math.max(1, aiRound)}/2 轮`
+          : aiStatus === 'error'
+            ? '生成失败'
+            : '生成完成';
   const typeScale = TYPE_SCALES[typeLevel] ?? 1;
   const bigType = typeLevel > 0;
   /** 画布只跟随约七成，避免节点/边权在窄屏上互相压住。 */
@@ -119,12 +141,88 @@ export default function App() {
     }
   };
 
+  const resetAi = () => {
+    aiAbort.current?.abort();
+    aiAbort.current = null;
+    setAiScene(null);
+    setAiSource(null);
+    setAiStatus('idle');
+    setAiStream('');
+    setAiRound(0);
+  };
+
+  const runAi = async (prompt: string) => {
+    aiAbort.current?.abort();
+    const controller = new AbortController();
+    aiAbort.current = controller;
+    setAiStatus('streaming');
+    setAiStream('');
+    setAiRound(0);
+    setNotice(null);
+    setPlaying(false);
+
+    try {
+      const result = await generateScene(prompt, {
+        signal: controller.signal,
+        onStatus: (phase, round) => {
+          setAiStatus(phase);
+          if (phase === 'repairing') {
+            setAiRound(round ?? 1);
+            setAiStream('');
+          }
+        },
+        onDelta: (delta) => setAiStream((previous) => previous + delta),
+      });
+      if (controller.signal.aborted) return;
+      setAiScene(result.scene);
+      setAiSource(result.repaired ? 'ai-repaired' : 'ai');
+      setAiStatus('done');
+      setAiStream('');
+      setAiRound(0);
+      setQuestion('');
+      setIndex(0);
+      setPlaying(false);
+      setNotice(
+        result.repaired ? `AI 修复 ${result.attempts - 1} 轮后生成完成` : 'AI 生成完成',
+      );
+    } catch (error) {
+      if (controller.signal.aborted) {
+        setAiStatus('idle');
+        return;
+      }
+      setAiStatus('error');
+      setNotice(
+        error instanceof AiGenerationError
+          ? `AI 生成失败：${error.issues
+              .slice(0, 2)
+              .map((issue) => `${issue.path || '$'} ${issue.message}`)
+              .join('；')}`
+          : error instanceof Error
+            ? error.message
+            : 'AI 生成失败',
+      );
+    } finally {
+      if (aiAbort.current === controller) aiAbort.current = null;
+    }
+  };
+
+  const cancelAi = () => {
+    aiAbort.current?.abort();
+    aiAbort.current = null;
+    setAiStatus('idle');
+    setAiStream('');
+    setAiRound(0);
+    setNotice('已停止生成');
+  };
+
   const switchScene = (id: SceneId) => {
+    resetAi();
     setSceneId(id);
     setIndex(0);
   };
 
   const restoreRecent = (entry: RecentEntry) => {
+    resetAi();
     const next = { ...sceneDefaults(entry.id), ...entry.params };
     if (entry.id === sceneId) {
       setParams(next);
@@ -160,6 +258,7 @@ export default function App() {
 
   // 地址栏：场景、参数与当前帧都可复现；step 用 0 基下标。
   useEffect(() => {
+    if (aiScene) return;
     const url = new URL(window.location.href);
     url.searchParams.set('scene', sceneId);
     for (const [key, value] of Object.entries(params)) {
@@ -174,10 +273,11 @@ export default function App() {
       url.searchParams.delete('step');
     }
     window.history.replaceState(null, '', url);
-  }, [sceneId, paramsKey, safeIndex]);
+  }, [sceneId, paramsKey, safeIndex, aiScene]);
 
   // 地址栏可能带来越界参数：按场景规格钳制，保证滑块与画面一致
   useEffect(() => {
+    if (aiScene) return;
     let changed = false;
     const next = { ...params };
     for (const spec of scene.params) {
@@ -190,15 +290,16 @@ export default function App() {
       }
     }
     if (changed) setParams(next);
-  }, [scene]);
+  }, [scene, aiScene]);
 
-  // 最近打开（防抖，避免拖滑块时刷屏）
+  // 最近打开（防抖，避免拖滑块时刷屏）；AI 场景不写内置场景的往期
   useEffect(() => {
+    if (aiScene) return;
     const timer = window.setTimeout(() => {
       setRecent(saveRecent({ id: sceneId, params, at: Date.now() }));
     }, 450);
     return () => window.clearTimeout(timer);
-  }, [sceneId, paramsKey]);
+  }, [sceneId, paramsKey, aiScene]);
 
   // 往期打开：把焦点移进面板；点面板外关闭；Esc 由全局键盘处理
   useEffect(() => {
@@ -280,6 +381,23 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [last, safeIndex]);
 
+  const submitAsk = () => {
+    if (aiBusy) return;
+    const prompt = question.trim();
+    if (!prompt) {
+      setNotice('先写一句想看什么，例如「二分查找」。');
+      return;
+    }
+    const next = routeScene(prompt);
+    if (next) {
+      switchScene(next);
+      setQuestion('');
+      setNotice(null);
+      return;
+    }
+    void runAi(prompt);
+  };
+
   return (
     <div
       className={`app${focus ? ' focus' : ''}${bigType ? ' big-type' : ''}`}
@@ -287,7 +405,9 @@ export default function App() {
     >
       <header className="mast">
         <div className="brand">ALGOVIZ</div>
-        <div className="mid">{scene.section}</div>
+        <div className="mid" aria-live="polite">
+          {aiBusy ? aiStatusText : scene.section}
+        </div>
         <div className="type-controls" role="group" aria-label="投影字号">
           <button
             className="type-step"
@@ -338,8 +458,8 @@ export default function App() {
                   {group.scenes.map((id) => (
                     <button
                       key={id}
-                      aria-pressed={id === sceneId}
-                      className={id === sceneId ? 'on' : ''}
+                      aria-pressed={!aiScene && id === sceneId}
+                      className={!aiScene && id === sceneId ? 'on' : ''}
                       onClick={() => switchScene(id)}
                     >
                       {SCENE_LABEL[id]}
@@ -429,7 +549,7 @@ export default function App() {
               </div>
             ) : null}
 
-            {scene.params.length > 0 ? (
+            {!aiScene && scene.params.length > 0 ? (
               <div className="params" role="group" aria-label="参数">
                 <div className="params-title">参数</div>
                 {scene.params.map((spec) => {
@@ -504,19 +624,32 @@ export default function App() {
               </p>
             ) : null}
 
+            {aiStatus !== 'idle' && aiStatus !== 'done' ? (
+              <div className={`ai-trace ai-trace-${aiStatus}`}>
+                <div className="ai-trace-head">
+                  <span role="status" aria-live="polite">
+                    {aiStatusText}
+                  </span>
+                  <span>{aiStream.length} 字</span>
+                  {aiBusy ? (
+                    <button type="button" onClick={cancelAi}>
+                      停止
+                    </button>
+                  ) : null}
+                </div>
+                {aiStream ? (
+                  <pre>{aiStream.slice(-1800)}</pre>
+                ) : (
+                  <p>{aiStatus === 'streaming' ? '等待第一个 token…' : '正在校验结构…'}</p>
+                )}
+              </div>
+            ) : null}
+
             <form
               className="ask"
               onSubmit={(e) => {
                 e.preventDefault();
-                const next = routeScene(question);
-                if (next) {
-                  switchScene(next);
-                  setQuestion('');
-                } else {
-                  setNotice(
-                    `「${question.trim() || '这句追问'}」没有命中内置场景。AI 生成正在接线（11/15），先试试上方的十个内置场景。`,
-                  );
-                }
+                submitAsk();
               }}
             >
               <input
@@ -524,12 +657,23 @@ export default function App() {
                 onChange={(e) => {
                   setQuestion(e.target.value);
                   setNotice(null);
+                  if (aiStatus === 'error') {
+                    setAiStatus('idle');
+                    setAiStream('');
+                  }
                 }}
+                maxLength={200}
+                disabled={aiBusy}
                 placeholder={scene.question}
+                title="命中内置场景会直接切换；其他主题用 AI 生成（需要服务端配置 LLM Key）"
                 aria-label="追问"
               />
-              <button type="submit" aria-label="提交追问">
-                →
+              <button
+                type="submit"
+                aria-label={aiBusy ? 'AI 生成中' : '提交追问'}
+                disabled={aiBusy || !question.trim()}
+              >
+                {aiBusy ? '…' : '→'}
               </button>
             </form>
           </div>
@@ -575,6 +719,9 @@ export default function App() {
           <div className="fig-head">
             <span>
               <b>FIG. {scene.figNo}</b> — {scene.figure}
+            </span>
+            <span className={`source-badge ${sceneSource}`}>
+              {sceneSource === 'builtin' ? '本地引擎' : sceneSource === 'ai-repaired' ? 'AI 修复后' : 'AI 生成'}
             </span>
             <span className="orange">
               第 {safeIndex + 1} 帧 / {steps.length}
