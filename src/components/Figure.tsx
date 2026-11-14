@@ -2,7 +2,9 @@ import { useEffect, useRef } from 'react';
 import { describeState } from '../lib/describe';
 import type { Step, StepState } from '../lib/dsl';
 import { drawArray } from './figure/array';
+import { drawGraph } from './figure/graph';
 import { drawPlate, easeOutCubic } from './figure/plate';
+import { drawSequence } from './figure/sequence';
 import { drawTree } from './figure/tree';
 
 /** 单帧过渡时长；`prefers-reduced-motion` 时缩短到 120ms。 */
@@ -53,10 +55,12 @@ export function Figure({ step }: { step: Step }) {
       return;
     }
 
-    ctx.fillStyle = '#6D6658';
-    ctx.font = '11px "Cascadia Mono", Consolas, monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('图版绘制中', W / 2, H / 2);
+    if (state.kind === 'graph') {
+      drawGraph(ctx, W, H, state, prev.kind === 'graph' ? prev : state, eased);
+      return;
+    }
+
+    drawSequence(ctx, W, H, state, prev.kind === 'sequence' ? prev : state, eased);
   };
 
   const paintRef = useRef(paint);

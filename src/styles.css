@@ -90,6 +90,8 @@ button, input { font: inherit; }
   scrollbar-width: thin;
   scrollbar-color: var(--rule) transparent;
 }
+/* 代码块等区块不许被 flex 压扁：内容超过一屏时交给左页滚动，而不是裁掉行。 */
+.left-scroll > *:not(.ask) { flex-shrink: 0; }
 .left-scroll::-webkit-scrollbar { width: 6px; }
 .left-scroll::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 3px; }
 
@@ -174,7 +176,7 @@ h1 {
   font-size: clamp(14px, 1.1vw, 17px);
   color: var(--blue);
 }
-.formula span {
+.formula > span {
   display: block;
   margin-top: 6px;
   font-family: var(--mono);
@@ -726,4 +728,63 @@ button.si-row:hover i { border-bottom-color: var(--blue); }
   .params,
   .step-list { max-width: 100%; }
   .recent-panel { display: none; }
+}
+
+/* ---------- v0.5：KaTeX 公式、只读 JSON 抽屉 ---------- */
+
+.formula-tex { line-height: 1.4; }
+.formula-tex .katex { font-size: 1.05em; color: var(--blue); }
+
+.json-drawer {
+  margin-top: 12px;
+  max-width: 460px;
+  border-top: 1px solid var(--rule);
+  padding-top: 6px;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: var(--faint);
+}
+.json-drawer summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+}
+.json-drawer summary::-webkit-details-marker { display: none; }
+.json-drawer summary::before { content: '▸ '; color: var(--blue); }
+.json-drawer[open] summary::before { content: '▾ '; }
+.json-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0 4px;
+  color: var(--faint);
+}
+.json-actions button {
+  border: 1px solid var(--rule);
+  background: none;
+  padding: 2px 7px;
+  font: inherit;
+  color: var(--muted);
+  cursor: pointer;
+}
+.json-actions button:hover { color: var(--blue); border-color: var(--blue); }
+.json-drawer pre {
+  max-height: 240px;
+  margin: 0;
+  overflow: auto;
+  padding: 8px 10px;
+  background: rgba(21, 21, 21, 0.035);
+  font-family: var(--mono);
+  font-size: 8.5px;
+  line-height: 1.55;
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 2;
+}
+@media (max-width: 780px) {
+  .json-drawer,
+  .json-drawer pre { max-width: 100%; }
+  .json-drawer pre { max-height: 200px; }
 }

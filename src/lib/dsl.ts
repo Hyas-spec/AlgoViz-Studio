@@ -58,6 +58,10 @@ export const graphStateSchema = z.object({
   frontier: z.array(identifier).max(20).optional(),
   path: z.array(identifier).max(20).optional(),
   current: identifier.nullable().optional(),
+  /** 节点旁的小字（Dijkstra 的暂定距离）。value 用字符串，好放 ∞。 */
+  dist: z.array(z.object({ id: identifier, value: z.string().min(1).max(6) })).max(20).optional(),
+  /** 底部游标条的标题：队列 / 已确定 / 待确定。 */
+  frontierLabel: z.string().min(1).max(8).optional(),
 });
 
 export const sequenceStateSchema = z.object({
@@ -282,6 +286,15 @@ function checkGraph(state: GraphState, path: string, issues: SceneIssue[]): void
   state.visited?.forEach((id, k) => ref(id, `visited[${k}]`));
   state.frontier?.forEach((id, k) => ref(id, `frontier[${k}]`));
   state.path?.forEach((id, k) => ref(id, `path[${k}]`));
+
+  const seenDist = new Set<string>();
+  state.dist?.forEach((entry, k) => {
+    ref(entry.id, `dist[${k}].id`);
+    if (seenDist.has(entry.id)) {
+      issues.push({ path: `${path}.dist[${k}].id`, message: `距离重复标注了节点 ${entry.id}` });
+    }
+    seenDist.add(entry.id);
+  });
 }
 
 function checkSequence(state: SequenceState, path: string, issues: SceneIssue[]): void {

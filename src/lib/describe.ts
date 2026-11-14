@@ -35,14 +35,19 @@ export function describeState(state: StepState): string {
     const labelOf = new Map(state.nodes.map((node) => [node.id, node.label]));
     const visited = (state.visited ?? []).map((id) => labelOf.get(id) ?? id);
     const frontier = (state.frontier ?? []).map((id) => labelOf.get(id) ?? id);
+    const path = (state.path ?? []).map((id) => labelOf.get(id) ?? id);
     const parts = [`图共 ${state.nodes.length} 个节点、${state.edges.length} 条边`];
+    if (state.current) parts.push(`当前在 ${labelOf.get(state.current) ?? state.current}`);
     if (visited.length > 0) parts.push(`已访问：${visited.join('、')}`);
     if (frontier.length > 0) parts.push(`待访问：${frontier.join('、')}`);
+    if (path.length > 0) parts.push(`最短路：${path.join(' → ')}`);
     return `${parts.join('；')}。`;
   }
 
   const active = state.active ? state.messages.find((message) => message.id === state.active) : null;
+  const lost = state.messages.filter((message) => message.lost === true).length;
   const parts = [`${state.lanes.length} 条泳道，共 ${state.messages.length} 条消息`];
   if (active) parts.push(`当前消息：${active.label}`);
+  if (lost > 0) parts.push(`其中 ${lost} 条丢失`);
   return `${parts.join('；')}。`;
 }

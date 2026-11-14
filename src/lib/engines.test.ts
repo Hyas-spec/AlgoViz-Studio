@@ -13,6 +13,8 @@ import { SceneIssueError, sceneSchema, validateScene, type Scene, type Step } fr
 
 const SORT_IDS = ['quick', 'bubble', 'merge'] as const;
 const TREE_IDS = ['levelorder', 'preorder', 'inorder'] as const;
+const GRAPH_IDS = ['bfs', 'dijkstra'] as const;
+const NETWORK_IDS = ['handshake', 'wave'] as const;
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
@@ -23,6 +25,16 @@ const arrayState = (step: Step) => {
 
 const treeState = (step: Step) => {
   if (step.state.kind !== 'tree') throw new Error('expected tree state');
+  return step.state;
+};
+
+const graphState = (step: Step) => {
+  if (step.state.kind !== 'graph') throw new Error('expected graph state');
+  return step.state;
+};
+
+const sequenceState = (step: Step) => {
+  if (step.state.kind !== 'sequence') throw new Error('expected sequence state');
   return step.state;
 };
 
@@ -37,9 +49,9 @@ const issueMessages = (scene: unknown): string[] => {
 };
 
 describe('built-in scenes', () => {
-  it('exposes six scenes in two groups', () => {
-    expect(SCENE_ORDER).toHaveLength(6);
-    expect(SCENE_GROUPS.map((group) => group.scenes.length)).toEqual([3, 3]);
+  it('exposes ten scenes in four groups', () => {
+    expect(SCENE_ORDER).toHaveLength(10);
+    expect(SCENE_GROUPS.map((group) => group.scenes.length)).toEqual([3, 3, 2, 2]);
     for (const id of SCENE_ORDER) {
       expect(isSceneId(id)).toBe(true);
       expect(SCENE_LABEL[id].length).toBeGreaterThan(0);
@@ -51,7 +63,7 @@ describe('built-in scenes', () => {
   it.each(SCENE_ORDER)('%s: default params produce a valid scene', (id) => {
     const scene = createScene(id);
     expect(() => sceneSchema.parse(scene)).not.toThrow();
-    expect(scene.layout === 'tree' ? 'tree' : 'array').toBe(scene.steps[0].state.kind);
+    expect(scene.steps[0].state.kind).toBe(scene.layout);
     expect(scene.steps.length).toBeLessThanOrEqual(120);
     expect(scene.params.length).toBeGreaterThan(0);
   });
@@ -167,6 +179,103 @@ describe('tree scenes and parameters', () => {
   });
 });
 
+describe('graph scenes and parameters', () => {
+  it('BFS visits the ring level by level', () => {
+    const scene = createScene('bfs');
+    const last = graphState(scene.steps[scene.steps.length - 1]);
+    expect(last.visited).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G']);
+    expect(last.frontier).toEqual([]);
+    expect(last.path).toBeUndefined();
+    expect(last.frontierLabel).toBe('队列');
+  });
+
+  it('BFS from D reorders the queue but still visits every node', () => {
+    const scene = createScene('bfs', { start: 1 });
+    const last = graphState(scene.steps[scene.steps.length - 1]);
+    expect(last.visited).toEqual(['D', 'B', 'F', 'A', 'E', 'C', 'G']);
+    expect(last.visited).toHaveLength(7);
+  });
+
+  it.each([0, 1])('BFS start=%i stays inside the step limit', (start) => {
+    expect(createScene('bfs', { start }).steps.length).toBeLessThanOrEqual(120);
+  });
+
+  it('Dijkstra settles every node and finds the shortest path', () => {
+    const scene = createScene('dijkstra');
+    const last = graphState(scene.steps[scene.steps.length - 1]);
+    expect(last.visited).toEqual(['S', 'B', 'A', 'C', 'D', 'T']);
+    expect(last.dist?.find((entry) => entry.id === 'T')?.value).toBe('8');
+    expect(last.path).toEqual(['S', 'B', 'C', 'D', 'T']);
+    expect(scene.steps[scene.steps.length - 1].doneAll).toBe(true);
+  });
+
+  it('Dijkstra from A finds the cheaper route through C', () => {
+    const scene = createScene('dijkstra', { start: 1 });
+    const last = graphState(scene.steps[scene.steps.length - 1]);
+    expect(last.dist?.find((entry) => entry.id === 'S')?.value).toBe('3');
+    expect(last.dist?.find((entry) => entry.id === 'T')?.value).toBe('6');
+    expect(last.path).toEqual(['A', 'C', 'D', 'T']);
+  });
+
+  it('Dijkstra labels every node before it is settled', () => {
+    const scene = createScene('dijkstra');
+    const first = graphState(scene.steps[0]);
+    expect(first.dist).toHaveLength(6);
+    expect(first.dist?.find((entry) => entry.id === 'S')?.value).toBe('0');
+    expect(first.dist?.filter((entry) => entry.value === '∞')).toHaveLength(5);
+  });
+});
+
+describe('network scenes and parameters', () => {
+  it('handshake sends exactly SYN, SYN+ACK and ACK', () => {
+    const scene = createScene('handshake');
+    const last = sequenceState(scene.steps[scene.steps.length - 1]);
+    expect(last.messages.map((message) => message.label)).toEqual([
+      'SYN, seq=x',
+      'SYN+ACK, ack=x+1',
+      'ACK, ack=y+1',
+    ]);
+    expect(last.notes?.map((note) => note.text)).toEqual(['ESTABLISHED', 'ESTABLISHED']);
+    expect(last.active).toBeNull();
+  });
+
+  it('handshake with a loss shows the dropped SYN and a retransmit', () => {
+    const scene = createScene('handshake', { loss: 1 });
+    const last = sequenceState(scene.steps[scene.steps.length - 1]);
+    expect(last.messages).toHaveLength(4);
+    expect(last.messages.filter((message) => message.lost)).toHaveLength(1);
+    expect(last.messages.filter((message) => message.label.includes('重传'))).toHaveLength(1);
+  });
+
+  it('wave closes the connection with four messages', () => {
+    const scene = createScene('wave');
+    const last = sequenceState(scene.steps[scene.steps.length - 1]);
+    expect(last.messages.map((message) => message.label)).toEqual([
+      'FIN, seq=u',
+      'ACK, ack=u+1',
+      'FIN, seq=v',
+      'ACK, ack=v+1',
+    ]);
+    expect(last.notes?.map((note) => note.text)).toEqual(['CLOSED', 'CLOSED']);
+  });
+
+  it('wave with a loss retransmits the server FIN', () => {
+    const scene = createScene('wave', { loss: 1 });
+    const last = sequenceState(scene.steps[scene.steps.length - 1]);
+    expect(last.messages).toHaveLength(5);
+    expect(last.messages.some((message) => message.lost)).toBe(true);
+    expect(last.messages.filter((message) => message.label.includes('重传'))).toHaveLength(1);
+  });
+
+  it.each(NETWORK_IDS)('%s stays inside the step limit with or without loss', (id) => {
+    for (const loss of [0, 1]) {
+      const scene = createScene(id, { loss });
+      expect(scene.steps.length).toBeLessThanOrEqual(120);
+      expect(scene.steps[scene.steps.length - 1].doneAll).toBe(true);
+    }
+  });
+});
+
 describe('scene validator', () => {
   it('rejects an array index outside the range', () => {
     const scene = clone<Scene>(createScene('quick'));
@@ -236,8 +345,29 @@ describe('scene validator', () => {
     expect(issueMessages(scene).join('\n')).toContain('超出');
   });
 
-  it('rejects a sequence message pointing at a missing lane', () => {
-    const scene: Scene = {
+  it('rejects a graph edge pointing at a missing node', () => {
+    const scene = clone<Scene>(createScene('bfs'));
+    const state = graphState(scene.steps[0]);
+    state.edges[0].to = 'Z';
+    expect(issueMessages(scene).join('\n')).toContain('边的终点 Z 不存在');
+  });
+
+  it('rejects duplicate distance labels', () => {
+    const scene = clone<Scene>(createScene('dijkstra'));
+    const state = graphState(scene.steps[scene.steps.length - 1]);
+    if (!state.dist) throw new Error('missing dist');
+    state.dist.push({ id: 'S', value: '0' });
+    expect(issueMessages(scene).join('\n')).toContain('距离重复标注了节点 S');
+  });
+
+  it('rejects a sequence active pointing at a missing message', () => {
+    const scene = clone<Scene>(createScene('handshake'));
+    const state = sequenceState(scene.steps[1]);
+    state.active = 'm999';
+    expect(issueMessages(scene).join('\n')).toContain('active 指向不存在的消息 m999');
+  });
+
+  it('rejects a sequence message pointing at a missing lane', () => {    const scene: Scene = {
       id: 'seq',
       title: '握手',
       chapter: 'CH.05 / NETWORK',
@@ -302,9 +432,16 @@ describe('rule router', () => {
     expect(routeScene('二叉树遍历')).toBe('levelorder');
   });
 
+  it('routes graph and network keywords', () => {
+    expect(routeScene('图的 BFS 遍历')).toBe('bfs');
+    expect(routeScene('Dijkstra 最短路怎么算')).toBe('dijkstra');
+    expect(routeScene('TCP 三次握手')).toBe('handshake');
+    expect(routeScene('四次挥手为什么等 2MSL')).toBe('wave');
+  });
+
   it('leaves long-tail topics to the LLM', () => {
-    expect(routeScene('TCP 三次握手')).toBeNull();
-    expect(routeScene('Dijkstra 最短路')).toBeNull();
+    expect(routeScene('红黑树怎么旋转')).toBeNull();
+    expect(routeScene('KMP 前缀表')).toBeNull();
   });
 });
 

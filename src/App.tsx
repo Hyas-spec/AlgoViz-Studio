@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Figure } from './components/Figure';
+import { Formula } from './components/Formula';
+import { JsonDrawer } from './components/JsonDrawer';
 import { describeState } from './lib/describe';
 import {
   createScene,
@@ -51,8 +53,8 @@ export default function App() {
 
   const sceneRef = useRef(sceneId);
   const pendingParams = useRef<Params | null>(null);
-  const mounted = useRef(false);
   const paramsKey = JSON.stringify(params);
+  const paramsRef = useRef(paramsKey);
 
   const scene = useMemo(() => createScene(sceneId, params), [sceneId, paramsKey]);
   const steps = scene.steps;
@@ -115,12 +117,12 @@ export default function App() {
     setRecentOpen(false);
   }, [sceneId]);
 
-  // 参数变化：重算后回到第 1 帧
+  // 参数变化：重算后回到第 1 帧。
+  // 用「上一次的参数键」判断，而不是 mounted 标记：StrictMode 会把挂载 effect 跑两遍，
+  // 用 mounted 标记会在第二次运行时把 &step 深链重置回第 1 帧。
   useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      return;
-    }
+    if (paramsRef.current === paramsKey) return;
+    paramsRef.current = paramsKey;
     setIndex(0);
     setPlaying(false);
   }, [paramsKey]);
@@ -261,7 +263,7 @@ export default function App() {
             </div>
 
             <div className="formula">
-              {scene.formula}
+              <Formula tex={scene.formula} />
               <span>
                 平均 {scene.complexity.time} · 空间 {scene.complexity.space}
                 {sizeParam ? ` · n = ${params.size ?? sizeParam.default}` : ''}
@@ -374,6 +376,8 @@ export default function App() {
               </ol>
             </details>
 
+            <JsonDrawer scene={scene} />
+
             {notice ? (
               <p className="ask-notice" role="status">
                 {notice}
@@ -390,7 +394,7 @@ export default function App() {
                   setQuestion('');
                 } else {
                   setNotice(
-                    `「${question.trim() || '这句追问'}」没有命中内置场景。AI 生成正在接线（11/15），先试试上方的六个内置场景。`,
+                    `「${question.trim() || '这句追问'}」没有命中内置场景。AI 生成正在接线（11/15），先试试上方的十个内置场景。`,
                   );
                 }
               }}
@@ -430,7 +434,7 @@ export default function App() {
                 recent.map((entry) => (
                   <button key={`${entry.id}-${entry.at}`} type="button" onClick={() => restoreRecent(entry)}>
                     <b>{SCENE_LABEL[entry.id]}</b>
-                    <span>{paramsSummary(entry.params)}</span>
+                    <span>{paramsSummary(entry.params, entry.id)}</span>
                     <em>{timeAgo(entry.at)}</em>
                   </button>
                 ))
