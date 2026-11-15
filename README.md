@@ -166,7 +166,7 @@ src/
 - [Prompt 00 · 界面选型](docs/prompts/00-界面选型.md)
 - [Prompt 01 · 脚手架与双页](docs/prompts/01-脚手架与双页.md)
 - [Prompt 02 · 引擎与场景](docs/prompts/02-引擎与三种排序.md)
-- [Prompt 03 · AI 生成与修复（文字稿，截图待补）](docs/prompts/03-AI生成与修复.md)
+- [Prompt 03 · AI 生成/修复/历史/讲解（文字 + 截图）](docs/prompts/03-AI生成与修复.md)
 - [交付台账 · 当前完成度与待办](docs/02-交付台账.md)
 - [视频脚本 · 6 分钟版](docs/03-视频脚本.md)
 - [配音台词 · 逐字稿](docs/05-配音台词.md)
