@@ -24,7 +24,7 @@
 - ✅ 可访问性与移动端：Space / Enter 不再被全局快捷键劫持；标尺可实时拖拽；0.5× 慢放；播完可从头重播；手机数组最大规模不裁切，往期抽屉可用
 - ✅ KaTeX 公式与「Scene DSL · 只读 JSON」抽屉
 - ✅ AI 生成：非内置主题走 `/api/llm` SSE 流式生成 → JSON 解析 → Zod/业务校验 → 质量线（排序至少 24 帧、8 个元素）→ 最多 3 轮自动修复 → 右页上屏；左侧显示流式 trace，可停止，来源标注「AI 生成 / AI 修复后」
-- 🚧 11/15 计划：AI 历史（localStorage + `#ai=` 恢复）与「直接讲解」问答模式
+- ✅ AI 历史 + 直接讲解：`localStorage` 最多 20 条，按问题/图解/讲解恢复，搜索、删除、清空；`#ai=<id>` 刷新可找回。输入区显式切换「生成图解 / 直接讲解」，讲解返回结构化 `answer`（结论、3–5 要点、公式、代码、追问），右页为问答卡
 - ⬜ P2（不阻塞提交）：PNG / Markdown / GIF / 教学卡片导出；完整分享链接
 
 > 比赛硬性交付、已完成证据、待办与需要你确认的事项，见 [交付台账](docs/02-交付台账.md)。
@@ -79,13 +79,19 @@
 - 生成时页眉显示阶段，左页底部显示流式 trace、已收到字数与「停止」按钮。
 - 输出先经过 `JSON.parse`（自动剥离 ```json 围栏）→ Zod 结构校验 → 业务规则 → 质量线（array/tree/graph 至少 8 帧、最后一帧 `doneAll`、`codeLine` 范围）。
 - 校验失败会把问题清单回喂模型，最多修复 3 轮；成功后右页上方标注「AI 生成」或「AI 修复后」。
-- AI 场景暂不写往期、不写 URL、刷新回到内置场景；AI 历史/直接讲解放到 11/15，导出放到 P2。
+- AI 场景与原讲解会写进「AI 历史」；URL 带 `#ai=<id>` 可刷新恢复；导出放到 P2。
 
 ![AI 生成的 Prim 最小生成树](mockups/v5-ai-prim.png)
 
 修复路径也真实跑过：红黑树插入第一次输出因父节点被旋转判为不合法，经过 1 轮修复后上屏，来源标注为「AI 修复后」。
 
 ![AI 修复后的红黑树](mockups/v5-ai-repaired.png)
+
+纯讲解模式把概念问题变成右页问答卡；AI 历史支持搜索、恢复与 `#ai=` 刷新恢复。
+
+![直接讲解问答卡](mockups/v5-answer.png)
+
+![AI 历史](mockups/v5-ai-history.png)
 
 ## AI 代理
 
@@ -120,7 +126,7 @@ npm run dev
 ```
 
 验收：双页可见；播放/单步/标尺可用；十种场景都能播放；`<780px` 自动单列且图版在前。填了 Key 后，输入「插入排序」应能看到流式生成并上屏。
-`npm test` 应全绿（87 个用例，覆盖三种排序、三种遍历、BFS/Dijkstra、TCP 握手/挥手与丢包、协议缩写与 seq/ack 字段注释、归并辅助段、AI 解析/修复/质量线、树旋转/新增节点、参数与步数上限、四态校验器与规则路由）。
+`npm test` 应全绿（91 个用例，覆盖三种排序、三种遍历、BFS/Dijkstra、TCP 握手/挥手与丢包、协议缩写与 seq/ack 字段注释、归并辅助段、AI 解析/修复/质量线、AI 答案/历史、树旋转/新增节点、参数与步数上限、四态校验器与规则路由）。
 
 常见问题：
 
@@ -149,7 +155,7 @@ src/
   components/     双页界面、图版渲染器（figure/*）、Formula（KaTeX）、JsonDrawer（只读 DSL）
   lib/dsl.ts      Scene DSL 与业务校验
   lib/engines/    快排 / 冒泡 / 归并 / 树遍历 / BFS / Dijkstra / TCP 握手与挥手
-  lib/ai/         prompt（system + few-shot）、client（SSE）、generate（校验/修复）
+  lib/ai/         prompt（system + few-shot）、client（SSE）、generate（校验/修复）、answer、history
   lib/describe.ts 图版状态的自然语言描述（读屏与 aria-label）
 ```
 
