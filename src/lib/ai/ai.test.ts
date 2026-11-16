@@ -86,4 +86,14 @@ describe('AI scene generation helpers', () => {
     expect(result.repaired).toBe(true);
     expect(result.scene.steps).toHaveLength(8);
   });
+
+  it('clamps an off-by-one outline.step instead of failing', async () => {
+    const scene = JSON.parse(JSON.stringify(EXAMPLE_SCENE)) as typeof EXAMPLE_SCENE;
+    scene.category = 'other';
+    scene.outline[3].step = scene.steps.length;
+    const result = await generateScene('outline 差一', {
+      complete: async () => JSON.stringify(scene),
+    });
+    expect(result.scene.outline[3].step).toBe(scene.steps.length - 1);
+  });
 });

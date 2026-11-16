@@ -194,7 +194,7 @@ export const SYSTEM_PROMPT = `你是 AlgoViz（算法视界）的 Scene DSL 生�
 1. 只输出 JSON 对象，第一个字符是 {，最后一个字符是 }；不要写 \`\`\`json。
 2. 字段名、枚举值必须与下面完全一致；不要增加未声明字段。
 3. 文本用中文（代码和公式除外）；不要 HTML、不要脚本、不要控制字符。
-4. 帧数下限：排序至少 24 帧（建议 30–50，每次比较/交换/写入都单独成帧），树/图至少 12 帧，查找至少 8 帧，时序至少 5 帧；上限 120。示例只有 8 帧，只展示字段形状，不要照抄长度。每帧必须有 caption / codeLine / state。
+4. 帧数下限：排序至少 24 帧（建议 30–50，每次比较/交换/写入都单独成帧），树至少 12 帧、图至少 10 帧，查找至少 8 帧，时序至少 5 帧；上限 120。示例只有 8 帧，只展示字段形状，不要照抄长度。每帧必须有 caption / codeLine / state。
 5. 所有步骤的 state.kind 必须等于 scene.layout；同一场里数组 length、图节点/边、时序泳道必须保持不变。树允许插入新节点、允许旋转改变 parent/side，但旧节点不能消失，且每帧必须根唯一、无环。规模建议：排序数组必须 8–10 个元素（少于 8 个视为不合格），查找 7–10 个，树 7–12 个节点，图 5–8 个节点。
 6. 最后一帧必须 doneAll: true；数组终态升序，树/图遍历完成，时序 active 为 null。
 7. outline 恰好 4 项，step 指向 0..steps.length-1；codeLine 指向 1..code.length。
@@ -319,7 +319,7 @@ const REPAIR_RULES = `
 2. 重新检查：layout 与每帧 state.kind 一致；数组长度/树节点/图节点/泳道在整场一致；所有引用 id 存在。
 3. 重新检查：outline 恰好 4 项且 step 在范围内；codeLine 在 1..code.length；facts 恰好 3 项；最后一帧 doneAll=true。
 4. 结构细节：树只能有一个根（parent=null），非根必须有 side L/R，禁止环；图边端点必须存在、禁止自环；时序消息端点必须属于 lanes、消息 id 不重复。
-5. 排序场景少于 24 帧必须继续展开比较/交换/写入步骤；树/图少于 12 帧也要补足。
+5. 排序场景少于 24 帧必须继续展开比较/交换/写入步骤；树少于 12 帧、图少于 10 帧也要补足。
 6. 输出完整 JSON，不要用“省略”或注释。`;
 
 export function buildInitialMessages(prompt: string): ChatMessage[] {

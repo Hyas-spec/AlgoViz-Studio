@@ -41,9 +41,25 @@ export const AI_MAX_REPAIRS = MAX_REPAIRS;
 function minSteps(scene: Scene): number {
   if (scene.category === 'sort') return 24;
   if (scene.category === 'search') return 8;
-  if (scene.layout === 'tree' || scene.layout === 'graph') return 12;
+  if (scene.layout === 'tree') return 12;
+  if (scene.layout === 'graph') return 10;
   if (scene.layout === 'sequence') return 5;
   return 8;
+}
+
+/** 模型偶尔把 outline.step 写成 steps.length（差 1）；这是格式笔误，先夹到最后一帧。 */
+function normalizeOutlineStep(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+  const scene = value as { steps?: unknown; outline?: unknown };
+  if (!Array.isArray(scene.steps) || !Array.isArray(scene.outline) || scene.steps.length === 0) return value;
+  const last = scene.steps.length - 1;
+  scene.outline = scene.outline.map((item) => {
+    if (!item || typeof item !== 'object') return item;
+    const outline = item as { step?: unknown };
+    if (typeof outline.step !== 'number') return item;
+    return { ...outline, step: Math.min(last, Math.max(0, Math.round(outline.step))) };
+  });
+  return value;
 }
 
 /** 剥掉模型偶尔带的 ```json 围栏和解释文字，再 JSON.parse。 */
@@ -115,7 +131,7 @@ export async function generateScene(prompt: string, hooks: GenerateHooks = {}): 
     hooks.onStatus?.('validating', attempt);
 
     try {
-      const scene = validateScene(extractJson(raw));
+      const scene = validateScene(normalizeOutlineStep(extractJson(raw)));
       scene.source = 'ai';
       const quality = qualityIssues(scene);
       if (quality.length > 0) throw new SceneIssueError(quality);
